@@ -154,6 +154,9 @@ select,input[type=text]{background:var(--sheet);border:1px solid var(--rule);bor
 .donebox .dmain{margin:0;font-weight:700;font-size:1.05rem}
 .nextbar{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;background:var(--blue-soft);border-radius:16px;padding:16px 22px}
 .nextbar p{margin:0;max-width:60ch}
+.ccount{margin-right:auto;align-self:center;font-family:var(--mono);font-size:.75rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.ccount.over{color:var(--red);font-weight:600}
+.opt input[type=number]{max-width:9rem}
 .topr{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .databox{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px 18px;align-items:center;background:var(--sheet);border:1px solid var(--rule);border-radius:16px;padding:18px 20px;margin-top:6px}
 .databox .dico{width:44px;height:44px}
@@ -512,6 +515,9 @@ textarea.jtext.loading{color:var(--muted);font-style:italic}
           <select id="optExt"><option value="breve">Breve (1–2 oraciones)</option><option value="media">Media (2–3 oraciones)</option><option value="extensa">Extensa (4–5 oraciones)</option></select></div>
         <div class="opt"><label class="lbl" for="optPersona">Cómo se escribe</label>
           <select id="optPersona"><option value="tercera">En tercera persona ("Trabaja…", "Debe…")</option><option value="segunda">Hablándole al estudiante ("Debes…")</option><option value="estilo">Como en mis juicios anteriores</option></select></div>
+        <div class="opt"><label class="lbl" for="optMax">Máximo de caracteres por juicio</label>
+          <input type="number" id="optMax" min="60" max="3000" step="10" inputmode="numeric">
+          <span class="note" id="optMaxHint"></span></div>
         <div class="opt"><span class="lbl">Opciones</span>
           <label class="check"><input type="checkbox" id="optNombre"> Mencionar el nombre del estudiante</label>
           <label class="check"><input type="checkbox" id="optReco" checked> Cerrar con una sugerencia</label></div>
@@ -558,12 +564,12 @@ function exampleGroup(){
   const a = (nombre,nota,apuntes,juicio,tipo) => ({id:nid(),nombre,nota,apuntes,juicio:juicio||"",tipo:tipo||"",editado:false});
   return { id:"ejemplo", nombre:"3º 2", materia:"Informática", periodo:"1ª reunión (ejemplo)", alumnos:[
     a("Acosta, Martina","11","re participativa, entrega todo antes de tiempo, ayuda a los compañeros con python",
-      "Demuestra un excelente desempeño en la asignatura. Participa activamente, entrega sus trabajos con anticipación y colabora con sus compañeros en la resolución de ejercicios de programación. Se la alienta a seguir profundizando en estos contenidos.","especifico"),
+      "Excelente desempeño. Participa activamente, entrega sus trabajos con anticipación y ayuda a sus compañeros en programación. Se la alienta a seguir.","especifico"),
     a("Benítez, Joaquín","5","hablador, no trae la compu casi nunca, entregó 2 de 5 tareas"),
     a("Cabrera, Sofía","8",""),
     a("Duarte, Tomás","7","mejoró mucho desde marzo, le cuesta la lógica de los bucles pero pregunta"),
     a("Ferreira, Camila","4","falta mucho, cuando viene trabaja bien",
-      "Su rendimiento se ve afectado por las reiteradas inasistencias. Cuando asiste, trabaja de manera adecuada. Se sugiere regularizar su asistencia para no perder la continuidad del curso.","especifico"),
+      "Su rendimiento se ve afectado por las reiteradas inasistencias. Cuando asiste, trabaja de manera adecuada. Se sugiere regularizar su asistencia.","especifico"),
     a("Gómez, Bruno","9","prolijo, callado, trabajos muy buenos")
   ]};
 }
@@ -1325,7 +1331,8 @@ function rowEl(a,i){
   const jc=document.createElement("div"); jc.className="juicio";
   const jl=document.createElement("label"); jl.className="mlabel"; jl.htmlFor="j_"+a.id; jl.textContent="Juicio";
   const jt=document.createElement("textarea"); jt.className="jtext"; jt.id="j_"+a.id; jt.dataset.col="j"; jt.value=a.juicio; jt.placeholder="Generalo con IA o escribilo acá"; jt.setAttribute("aria-label","Juicio");
-  jt.oninput=()=>{ a.juicio=jt.value; a.editado=true; autosize(jt); paintChips(chips,a); scheduleSave(); renderStats(); };
+  const cc=document.createElement("span"); cc.className="ccount"; paintCount(cc,a.juicio);
+  jt.oninput=()=>{ a.juicio=jt.value; a.editado=true; autosize(jt); paintChips(chips,a); paintCount(cc,jt.value); scheduleSave(); renderStats(); };
   const act=document.createElement("div"); act.className="jact";
   const g=document.createElement("button"); g.type="button"; g.className="btn small ghost"; g.textContent=a.juicio.trim()?"Rehacer":"Generar"; g.disabled=!aiOn()||S.busy;
   g.onclick=()=>generar([a],true);
@@ -1334,10 +1341,16 @@ function rowEl(a,i){
   const del=document.createElement("button"); del.type="button"; del.className="btn small ghost danger"; del.textContent="Quitar"; let armed=false,tm;
   del.onclick=()=>{ if(!armed){ armed=true; del.textContent="¿Quitar?"; tm=setTimeout(()=>{armed=false;del.textContent="Quitar"},3000); return; }
     clearTimeout(tm); S.cur.alumnos=S.cur.alumnos.filter(x=>x.id!==a.id); scheduleSave(); renderSheet(); };
-  act.append(g,cp,del);
+  act.append(cc,g,cp,del);
   jc.append(jl,jt,act);
   r.append(num,nm,nt,ap,jc);
   return r;
+}
+function paintCount(el,t){
+  const lim=charLimit(), n=String(t||"").length;
+  el.textContent = lim ? `${n}/${lim}` : (n ? `${n} caracteres` : "");
+  el.classList.toggle("over", !!lim && n>lim);
+  el.title = lim && n>lim ? `Se pasa por ${n-lim} caracteres del máximo de la plataforma` : "";
 }
 function refreshRow(a,flash){
   const r=document.querySelector(`.row[data-id="${a.id}"]`); if(!r) return;
@@ -1345,6 +1358,7 @@ function refreshRow(a,flash){
   if(flash){ jt.classList.remove("flash"); void jt.offsetWidth; jt.classList.add("flash"); }
   paintChips(r.querySelector(".chips"),a);
   r.querySelector(".jact .btn").textContent=a.juicio.trim()?"Rehacer":"Generar";
+  const cc=r.querySelector(".ccount"); if (cc) paintCount(cc,a.juicio);
 }
 /* ---------- keyboard: Enter/Tab go down the same column ---------- */
 const COLS=["n","t","a","j"];
@@ -1395,6 +1409,7 @@ function styleContext(){
 }
 function buildPrompt(list){
   const p=S.perfil, g=S.cur;
+  const lim=charLimit();
   const ext={breve:"1 o 2 oraciones, entre 20 y 35 palabras",media:"2 o 3 oraciones, entre 35 y 60 palabras",extensa:"4 o 5 oraciones, entre 60 y 100 palabras"}[p.extension]||"2 o 3 oraciones";
   const per={tercera:"Escribí en tercera persona, sobre el estudiante (\"Trabaja con responsabilidad…\", \"Debe…\"). No uses su nombre como sujeto de cada oración.",
              segunda:"Escribí dirigiéndote al estudiante en segunda persona con tuteo formal (\"Debes…\", \"Has logrado…\").",
@@ -1417,7 +1432,7 @@ REGLAS
 - El tono tiene que ser coherente con la nota: no elogies en exceso una nota baja ni critiques una alta. Si no hay nota, guiate solo por los apuntes.
 - Respetuoso y constructivo. Nunca descalificante, sin diagnósticos, sin temas familiares, de salud o privados aunque aparezcan en los apuntes.
 - No menciones la nota numérica en el juicio.
-- Extensión: ${ext}.
+${lim ? `- LÍMITE ESTRICTO: cada juicio debe tener como máximo ${lim} caracteres en total, contando espacios y signos de puntuación (unas ${Math.max(8,Math.round(lim/6.5))} palabras). La plataforma no acepta más. Si no entra todo, quedate con lo más importante de los apuntes y escribí oraciones cortas.` : `- Extensión: ${ext}.`}
 - ${per}
 - ${p.usarNombre?"Podés mencionar el nombre de pila del estudiante una vez, de forma natural.":"No menciones el nombre del estudiante."}
 - ${p.recomendacion?"Terminá con una sugerencia breve y concreta para seguir mejorando.":"No agregues sugerencias ni recomendaciones al final."}
@@ -1465,6 +1480,16 @@ async function generar(list, regen){
       if (res && !Array.isArray(res)) res = res.juicios || res.estudiantes || Object.values(res).find(Array.isArray) || [];
       const byId={}; (res||[]).forEach(o=>{ if(o && o.id!=null) byId[String(o.id)]=o; });
       chunk.forEach(a=>{ const o=byId[a.id]; if(o && typeof o.juicio==="string" && o.juicio.trim()){ a.juicio=o.juicio.trim(); a.tipo=o.tipo==="especifico"?"especifico":"generico"; a.editado=false; hechos++; } refreshRow(a,!!o); });
+      const lim=charLimit(), over=lim ? chunk.filter(a=>a.juicio.length>lim) : [];
+      if (over.length){
+        $("#progressText").textContent="Ajustando al largo máximo…";
+        try{
+          let r2=await aiJson(`Acortá cada uno de estos juicios escolares para que tenga como máximo ${lim} caracteres en total, contando espacios y puntuación. Mantené el sentido, el tono y el español formal de Uruguay. No agregues nada nuevo.\nRespondé solo con un array JSON: [{"id":"abc","juicio":"..."}]\n\n${JSON.stringify(over.map(a=>({id:a.id,juicio:a.juicio})))}`, {signal:S.ctl.signal, cache:false});
+          if (r2 && !Array.isArray(r2)) r2=Object.values(r2).find(Array.isArray)||[];
+          (r2||[]).forEach(o=>{ const a=over.find(x=>x.id===String(o&&o.id)); if(a && typeof o.juicio==="string" && o.juicio.trim() && o.juicio.trim().length<a.juicio.length) a.juicio=o.juicio.trim(); });
+        } catch(e){ if (e && e.code==="cancelled") throw e; }
+        over.forEach(a=>{ if (a.juicio.length>lim) a.juicio=cutToLimit(a.juicio,lim); refreshRow(a,true); });
+      }
       scheduleSave(); renderStats();
     }
     if (list.length>1) toast(`${hechos} juicios listos. Revisalos antes de pasarlos.`);
@@ -1498,8 +1523,20 @@ $("#egDelete").onclick=async e=>{
 };
 
 /* ---------- style options ---------- */
+// Character limit for each juicio: what the teacher set, or the platform's own limit
+const PLAT_LIMIT={pf:150, siged:600};
+function charLimit(){ const v=parseInt(S.perfil.maxChars,10); return v>=60 ? v : (PLAT_LIMIT[S.perfil.plataforma]||0); }
+function cutToLimit(t,lim){
+  t=String(t).trim(); if (t.length<=lim) return t;
+  const cut=t.slice(0,lim), dot=Math.max(cut.lastIndexOf(". "),cut.endsWith(".")?cut.length-1:-1);
+  if (dot>=lim*0.5) return cut.slice(0,dot+1).trim();
+  const sp=cut.slice(0,lim-1).lastIndexOf(" ");
+  return (sp>0?cut.slice(0,sp):cut.slice(0,lim-1)).replace(/[,;:\s]+$/,"")+".";
+}
 function renderStyle(){
-  const p=S.perfil; $("#optExt").value=p.extension; $("#optPersona").value=p.persona;
+  const p=S.perfil; $("#optExt").value=p.extension;
+  const def=PLAT_LIMIT[p.plataforma]; $("#optMax").value=charLimit()||""; $("#optMax").placeholder="Sin límite";
+  $("#optMaxHint").textContent = def ? `${p.plataforma==="pf"?"Portafolio Docente":"SIGED"} acepta hasta ${def}.` : "Dejalo vacío si tu plataforma no tiene límite."; $("#optPersona").value=p.persona;
   $("#optNombre").checked=!!p.usarNombre; $("#optReco").checked=!!p.recomendacion;
   const nf=(p.archivos||[]).length, np=(p.ejemplos||"").split(/\n\s*\n/).filter(s=>s.trim()).length;
   const bits=[]; if(nf) bits.push(`${nf} ${nf===1?"archivo":"archivos"} de juicios anteriores`); if(np) bits.push(`${np} ${np===1?"juicio pegado":"juicios pegados"}`);
@@ -1507,10 +1544,13 @@ function renderStyle(){
   $("#styleBtn").textContent = (nf||np) ? "Cómo redacta · con tu estilo" : "Cómo redacta";
 }
 function styleChanged(){
-  Object.assign(S.perfil,{ extension:$("#optExt").value, persona:$("#optPersona").value, usarNombre:$("#optNombre").checked, recomendacion:$("#optReco").checked });
+  const mx=parseInt($("#optMax").value,10);
+  Object.assign(S.perfil,{ extension:$("#optExt").value, persona:$("#optPersona").value, usarNombre:$("#optNombre").checked, recomendacion:$("#optReco").checked,
+    maxChars: mx>=60 && mx!==PLAT_LIMIT[S.perfil.plataforma] ? mx : null });
+  if (S.view==="sheet") renderSheet();
   scheduleSave("perfil");
 }
-["optExt","optPersona","optNombre","optReco"].forEach(id=>$("#"+id).addEventListener("change",styleChanged));
+["optExt","optPersona","optNombre","optReco","optMax"].forEach(id=>$("#"+id).addEventListener("change",styleChanged));
 
 /* ---------- export ---------- */
 function toast(t){ const el=$("#toast"); el.textContent=t; el.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>el.hidden=true,2800); }
