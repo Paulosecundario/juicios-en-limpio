@@ -145,6 +145,15 @@ select,input[type=text]{background:var(--sheet);border:1px solid var(--rule);bor
 .codebox{background:var(--blue-soft);border-radius:var(--radius);padding:12px 16px;display:flex;flex-direction:column;gap:8px}
 .codebox label{font-weight:700}
 .codebox input{min-width:12rem}
+.tile.done{border-style:solid;border-color:var(--ok)}
+.tbadge{position:absolute;top:14px;right:14px;background:var(--ok-soft);color:var(--ok);font-weight:700;border-radius:999px;padding:3px 11px;font-size:.85rem}
+.tbadge.opt{background:var(--rule-soft);color:var(--muted);font-weight:400}
+.donebox{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.donebox .tick{width:64px;height:64px;border-radius:50%;background:var(--ok);color:var(--sheet);font-size:34px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.donebox h2{font-size:clamp(1.4rem,2.6vw,1.8rem)}
+.donebox .dmain{margin:0;font-weight:700;font-size:1.05rem}
+.nextbar{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;background:var(--blue-soft);border-radius:16px;padding:16px 22px}
+.nextbar p{margin:0;max-width:60ch}
 .topr{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .databox{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px 18px;align-items:center;background:var(--sheet);border:1px solid var(--rule);border-radius:16px;padding:18px 20px;margin-top:6px}
 .databox .dico{width:44px;height:44px}
@@ -292,6 +301,14 @@ textarea.jtext.loading{color:var(--muted);font-style:italic}
 
     <div class="tiles">
       <section class="tile" id="tileAlumnos" aria-labelledby="tAlTitle">
+        <span class="tbadge" id="alBadge" hidden>✓ Listo</span>
+        <div class="donebox" id="alDone" hidden>
+          <span class="tick" aria-hidden="true">✓</span>
+          <h2>Alumnos cargados</h2>
+          <p class="dmain" id="alDoneTxt"></p>
+          <p class="sub" id="alDoneSub"></p>
+          <button class="link" id="alChange" type="button">Cargar otra lista</button>
+        </div>
         <button class="drop" id="dropAlumnos" type="button">
           <svg class="ico" viewBox="0 0 80 80" aria-hidden="true">
             <rect x="12" y="8" width="56" height="64" rx="7" fill="var(--blue-soft)" stroke="var(--blue)" stroke-width="3"/>
@@ -303,7 +320,7 @@ textarea.jtext.loading{color:var(--muted);font-style:italic}
           <p class="sub">Arrastrá acá el archivo con la lista del grupo o tocá para elegirlo.</p>
           <span class="fmts"><span class="fmt">Excel</span><span class="fmt">PDF</span><span class="fmt">Word</span><span class="fmt">CSV</span><span class="fmt" id="fmtFoto" hidden>Foto</span></span>
         </button>
-        <span class="alt"><button class="link" id="howSigedBtn" type="button">Cómo traerla de SIGED</button><span id="howSigedSep"> · o </span><span id="howSigedOr" hidden>o </span><button class="link" id="pasteAlBtn" type="button">pegá la lista</button></span>
+        <span class="alt" id="alAlt"><button class="link" id="howSigedBtn" type="button">Cómo traerla de SIGED</button><span id="howSigedSep"> · o </span><span id="howSigedOr" hidden>o </span><button class="link" id="pasteAlBtn" type="button">pegá la lista</button></span>
         <div class="howto" id="howSiged" hidden>
           <h3>Traer la lista de alumnos</h3>
           <div id="howPf" hidden>
@@ -350,6 +367,8 @@ textarea.jtext.loading{color:var(--muted);font-style:italic}
       </section>
 
       <section class="tile" id="tileJuicios" aria-labelledby="tJuTitle">
+        <span class="tbadge" id="juBadge" hidden>✓ Listo</span>
+        <span class="tbadge opt" id="juOpt">Opcional</span>
         <button class="drop" id="dropJuicios" type="button">
           <svg class="ico" viewBox="0 0 80 80" aria-hidden="true">
             <rect x="22" y="6" width="46" height="58" rx="6" fill="var(--sheet)" stroke="var(--rule-strong)" stroke-width="2.5"/>
@@ -370,6 +389,10 @@ textarea.jtext.loading{color:var(--muted);font-style:italic}
         <input type="file" id="fileJuicios" accept=".docx,.pdf,.xlsx,.xls,.ods,.csv,.txt" multiple hidden>
         <div class="busyov" id="busyJuicios" hidden><span class="spin"></span><span id="busyJuTxt">Leyendo archivos…</span></div>
       </section>
+    </div>
+    <div class="nextbar" id="nextBar" hidden>
+      <p id="nextTxt"></p>
+      <button class="btn primary big" id="nextBtn" type="button">Continuar →</button>
     </div>
     <p class="note err" id="homeErr" hidden></p>
 
@@ -820,6 +843,7 @@ async function init(){
   groups.sort((a,b)=>(b.actualizado||0)-(a.actualizado||0));
   S.groups = groups;
   if (migrated){ localWrite(); markChanged(); }
+  { const pid=lsGet("juicios.pending"); if (pid && groups.some(g=>g.id===pid)) S.pending=pid; }
   if (!aiOn()){ const n=$("#aiNote"); n.hidden=false; n.textContent = S.remote==="noconf" ? "La redacción automática todavía no está configurada en este sitio. Igual podés cargar notas, escribir juicios y exportarlos." : "La redacción automática no está disponible acá. Igual podés cargar notas, escribir juicios y exportarlos."; }
   else if (S.remote==="ok" && !lsGet("juicios.code")) showCodeBox();
   if (!S.perfil.plataforma){ const p=lsGet("juicios.plat"); if (["siged","pf","otra"].includes(p)) S.perfil.plataforma=p; }
@@ -993,6 +1017,29 @@ function renderHome(){
   $("#groupsBox h3").hidden=!S.groups.length;
   renderStyleFiles();
 }
+function setPending(id){ S.pending=id||null; lsSet("juicios.pending", id||""); }
+function renderTiles(){
+  const pend=S.pending && S.groups.find(g=>g.id===S.pending);
+  if (S.pending && !pend) setPending(null);
+  const t=$("#tileAlumnos");
+  t.classList.toggle("done", !!pend);
+  $("#alBadge").hidden=!pend; $("#alDone").hidden=!pend;
+  $("#dropAlumnos").hidden=!!pend; $("#alAlt").hidden=!!pend;
+  if (pend){
+    $("#howSiged").hidden=true; $("#pasteAlBox").hidden=true;
+    $("#alDoneTxt").textContent=`${pend.alumnos.length} ${pend.alumnos.length===1?"alumno":"alumnos"}`;
+    $("#alDoneSub").textContent=[pend.nombre,pend.materia].filter(Boolean).join(" · ");
+  }
+  const ju=(S.perfil.archivos||[]).length>0 || !!(S.perfil.ejemplos||"").trim();
+  $("#tileJuicios").classList.toggle("done", ju);
+  $("#juBadge").hidden=!ju; $("#juOpt").hidden=ju;
+  $("#nextBar").hidden=!pend;
+  if (pend) $("#nextTxt").textContent = ju
+    ? `Todo listo para ${pend.nombre}: tus alumnos y tus juicios anteriores ya están cargados.`
+    : `La lista de ${pend.nombre} ya está cargada. Si querés que la IA escriba como vos, subí tus juicios anteriores; si no, tocá Continuar.`;
+}
+$("#alChange").onclick=()=>{ importTarget="new"; $("#fileAlumnos").click(); };
+$("#nextBtn").onclick=()=>{ const g=S.groups.find(x=>x.id===S.pending); setPending(null); if (g) openGroup(g); else { show("home"); renderHome(); } };
 function openGroup(g){
   S.cur=g; S.example=g.id==="ejemplo"; if(!S.example) lsSet("juicios.last",g.id);
   show("sheet"); renderSheetView();
@@ -1134,8 +1181,12 @@ $("#rvCreate").onclick=()=>{
   }
   if (rv.target==="new"){
     const g={id:nid(), nombre:$("#ngNombre").value.trim()||"Grupo nuevo", materia:$("#ngMateria").value.trim(), periodo:$("#ngPeriodo").value.trim(), alumnos:items.map(mk), actualizado:Date.now()};
-    S.groups.unshift(g); scheduleSave("group",g); openGroup(g);
-    toast(`Planilla creada con ${items.length} alumnos`);
+    // Replace a list loaded a moment ago that was never opened
+    if (S.pending){ const old=S.groups.find(x=>x.id===S.pending); if (old && !old.alumnos.some(a=>a.apuntes||a.juicio)){ S.groups=S.groups.filter(x=>x.id!==old.id); deleteGroupStore(old.id).catch(()=>{}); } }
+    S.groups.unshift(g); scheduleSave("group",g);
+    setPending(g.id);
+    show("home"); renderHome();
+    toast(`Lista cargada: ${items.length} alumnos. Si querés, subí tus juicios anteriores y tocá Continuar.`);
   } else {
     const al=S.cur.alumnos; let added=0;
     items.forEach(p=>{ const ex=al.find(a=>a.nombre.trim().toLowerCase()===p.nombre.toLowerCase()); if(ex){ if(p.nota) ex.nota=p.nota; if(p.historial.length) ex.historial=p.historial; } else { al.push(mk(p)); added++; } });
@@ -1194,6 +1245,7 @@ function renderStyleFiles(syncPaste=true){
   if (syncPaste){ $("#pasteJu").value=S.perfil.ejemplos||""; if(pasted) $("#pasteJuBox").hidden=false; }
   box.hidden=!S.perfil.archivos.length;
   $("#pasteJuBtn").textContent = pasted ? "editar juicios pegados" : "pegá juicios sueltos";
+  renderTiles();
 }
 
 /* ---------- sheet render ---------- */
