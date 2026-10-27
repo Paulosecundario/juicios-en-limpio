@@ -256,6 +256,11 @@ textarea.jtext.loading{color:var(--muted);font-style:italic}
 .spin{width:22px;height:22px;border:3px solid var(--rule);border-top-color:var(--blue);border-radius:50%}
 @media (prefers-reduced-motion:no-preference){ .spin{animation:spin 0.9s linear infinite} @keyframes spin{to{transform:rotate(360deg)}}
   textarea.jtext.flash{animation:flash 1.2s ease-out} @keyframes flash{from{background:var(--blue-soft)}to{background:var(--sheet)}} }
+dialog.ask{border:0;border-radius:16px;padding:24px 26px;max-width:min(420px,calc(100vw - 32px));background:var(--sheet);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.28)}
+dialog.ask::backdrop{background:rgba(14,19,32,.45)}
+dialog.ask h3{font-family:var(--display);font-size:1.3rem;margin:0 0 6px}
+dialog.ask p{margin:0 0 18px;color:var(--muted)}
+dialog.ask .prow{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 </style>
 
 <div class="wrap">
@@ -504,6 +509,11 @@ textarea.jtext.loading{color:var(--muted);font-style:italic}
       <button class="btn" id="xlsxBtn" type="button">Descargar Excel</button>
     </div>
     <p class="note err" id="aiNote" hidden></p>
+    <dialog class="ask" id="redoAsk">
+      <h3>¿Rehacer los juicios?</h3>
+      <p id="redoAskTxt"></p>
+      <div class="prow"><button class="btn ghost" id="redoNo" type="button">Cancelar</button><button class="btn primary" id="redoYes" type="button">Sí, rehacer</button></div>
+    </dialog>
     <div class="codebox" id="codeBox" hidden>
       <label for="codeIn">Código de acceso para generar juicios</label>
       <div class="prow"><input type="text" id="codeIn" autocomplete="off" spellcheck="false" placeholder="Ej: profe-1234"><button class="btn primary" id="codeSave" type="button">Guardar código</button></div>
@@ -1320,14 +1330,27 @@ function renderHead(){
   $("#gMateria").textContent = S.cur.materia || "Materia";
   $("#gPeriodo").textContent = S.cur.periodo || "";
 }
+// What "Generar juicios" works on: students without a juicio, plus those whose nota or apuntes
+// changed after their juicio was generated. When nothing is pending, it redoes the ones not edited by hand.
+function firma(a){ return (a.nota||"")+"|"+(a.apuntes||"").trim(); }
+function toGenerate(){
+  const al=S.cur.alumnos.filter(a=>a.nombre.trim());
+  const list=al.filter(a=>!a.juicio.trim() || (!a.editado && a.firma!=null && a.firma!==firma(a)));
+  if (list.length) return {list, redo:false};
+  const auto=al.filter(a=>!a.editado);
+  return {list: auto.length ? auto : al, redo:true};
+}
 function renderStats(){
   if (!S.cur) return;
   const al=S.cur.alumnos, con=al.filter(a=>a.juicio.trim()).length;
   const notas=al.map(a=>parseInt(a.nota,10)).filter(v=>v>=1&&v<=12);
   $("#stTotal").textContent=al.length; $("#stHechos").textContent=con; $("#stPend").textContent=al.length-con;
   $("#stProm").textContent = notas.length ? (notas.reduce((x,y)=>x+y,0)/notas.length).toFixed(1).replace(".",",") : "–";
-  const pend = al.filter(a=>a.nombre.trim() && !a.juicio.trim()).length;
-  const b=$("#genAllBtn"); b.textContent = pend ? `Generar juicios (${pend})` : "Generar juicios"; b.disabled = !aiOn() || !pend || S.busy;
+  const {list,redo}=toGenerate();
+  const b=$("#genAllBtn");
+  b.textContent = redo ? "Rehacer juicios" : list.length ? `Generar juicios (${list.length})` : "Generar juicios";
+  b.title = redo ? "Vuelve a redactar los juicios que no cambiaste a mano" : "";
+  b.disabled = !aiOn() || !list.length || S.busy;
 }
 function chipsFor(a){
   const c=[];
@@ -1379,7 +1402,7 @@ function rowEl(a,i){
   const ap=document.createElement("div"); ap.className="apcell";
   const apl=document.createElement("label"); apl.className="mlabel"; apl.htmlFor="a_"+a.id; apl.textContent="Apuntes (borrador)";
   const at=document.createElement("textarea"); at.className="apuntes"; at.id="a_"+a.id; at.dataset.col="a"; at.value=a.apuntes; at.placeholder="Escribí como te salga…"; at.setAttribute("aria-label","Apuntes informales");
-  at.oninput=()=>{ a.apuntes=at.value; autosize(at); paintChips(chips,a); scheduleSave(); };
+  at.oninput=()=>{ a.apuntes=at.value; autosize(at); paintChips(chips,a); scheduleSave(); renderStats(); };
   ap.append(apl,at);
   const jc=document.createElement("div"); jc.className="juicio";
   const jl=document.createElement("label"); jl.className="mlabel"; jl.htmlFor="j_"+a.id; jl.textContent="Juicio";
@@ -1532,7 +1555,7 @@ async function generar(list, regen){
       let res = await aiJson(buildPrompt(chunk), opts);
       if (res && !Array.isArray(res)) res = res.juicios || res.estudiantes || Object.values(res).find(Array.isArray) || [];
       const byId={}; (res||[]).forEach(o=>{ if(o && o.id!=null) byId[String(o.id)]=o; });
-      chunk.forEach(a=>{ const o=byId[a.id]; if(o && typeof o.juicio==="string" && o.juicio.trim()){ a.juicio=o.juicio.trim(); a.tipo=o.tipo==="especifico"?"especifico":"generico"; a.editado=false; hechos++; } refreshRow(a,!!o); });
+      chunk.forEach(a=>{ const o=byId[a.id]; if(o && typeof o.juicio==="string" && o.juicio.trim()){ a.juicio=o.juicio.trim(); a.tipo=o.tipo==="especifico"?"especifico":"generico"; a.editado=false; a.firma=firma(a); hechos++; } refreshRow(a,!!o); });
       const lim=charLimit(), over=lim ? chunk.filter(a=>a.juicio.length>lim) : [];
       if (over.length){
         $("#progressText").textContent="Ajustando al largo máximo…";
@@ -1553,7 +1576,16 @@ async function generar(list, regen){
 }
 $("#codeSave").onclick=()=>{ const v=$("#codeIn").value.trim(); if(!v) return; lsSet("juicios.code",v); $("#codeBox").hidden=true; $("#aiNote").hidden=true; toast("Código guardado. Ya podés generar juicios."); };
 $("#stopBtn").onclick=()=>S.ctl&&S.ctl.abort();
-$("#genAllBtn").onclick=()=>generar(S.cur.alumnos.filter(a=>a.nombre.trim()&&!a.juicio.trim()),false);
+$("#genAllBtn").onclick=()=>{
+  const {list,redo}=toGenerate();
+  if (!redo) return generar(list,false);
+  const n=list.length, d=$("#redoAsk");
+  $("#redoAskTxt").textContent = `Se van a volver a redactar ${n===1?"el juicio":`los ${n} juicios`} y se reemplaza${n===1?"":"n"} ${n===1?"el actual":"los actuales"}. Los que escribiste o corregiste a mano no se tocan.`;
+  d.showModal(); $("#redoNo").focus();
+  $("#redoYes").onclick=()=>{ d.close(); generar(list,true); };
+};
+$("#redoNo").onclick=()=>$("#redoAsk").close();
+$("#redoAsk").addEventListener("click",e=>{ if(e.target===e.currentTarget) e.currentTarget.close(); });
 
 /* ---------- panels ---------- */
 const PANELS=["importPanel","stylePanel","groupPanel","copyPanel"];
