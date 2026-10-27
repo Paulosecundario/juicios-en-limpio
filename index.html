@@ -81,8 +81,11 @@ select,input[type=text]{background:var(--sheet);border:1px solid var(--rule);bor
 .plat .pdesc{color:var(--muted);font-size:1rem;max-width:30ch}
 .plat .pgo{margin-top:auto;color:var(--blue);font-weight:700}
 .pfoot{text-align:center}
-.platchip{font-size:.92rem !important;color:var(--muted)}
-.platchip b{color:var(--ink)}
+.platchip{display:inline-flex;width:fit-content;align-self:flex-start;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px !important;padding:6px 6px 6px 14px;border:1px solid var(--rule-strong);background:var(--sheet);border-radius:999px;font-size:.95rem !important;color:var(--muted)}
+.platchip .pdot{width:9px;height:9px;border-radius:50%;background:var(--ok);flex:none}
+.platchip b{color:var(--ink);font-size:1rem}
+.platchip .btn{padding:4px 12px;border-radius:999px;font-size:.88rem;font-weight:600;color:var(--blue);background:var(--blue-soft);border-color:transparent}
+.platchip .btn:hover{border-color:var(--blue)}
 .tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
 @media (max-width:760px){.tiles{grid-template-columns:1fr}}
 .tile{position:relative;border:2px dashed var(--rule-strong);border-radius:20px;background:var(--sheet);padding:34px 26px 26px;min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;min-width:0}
@@ -314,7 +317,7 @@ dialog.ask .prow{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
     <div class="hero">
       <h1>Juicios <em>en limpio</em></h1>
       <p>Subí la lista del grupo, escribí cómo le fue a cada uno como te salga, y la IA lo pasa en limpio con tu estilo.</p>
-      <p class="platchip">Plataforma: <b id="platName"></b> · <button class="link" id="platChange" type="button">Cambiar</button></p>
+      <p class="platchip"><span class="pdot" aria-hidden="true"></span><span>Cargás en <b id="platName"></b></span><button class="btn" id="platChange" type="button">Cambiar</button></p>
     </div>
 
     <div class="tiles">
