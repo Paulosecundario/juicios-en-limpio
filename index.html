@@ -117,6 +117,12 @@ select,input[type=text]{background:var(--sheet);border:1px solid var(--rule);bor
 .groups{display:flex;flex-direction:column;gap:10px;padding-top:14px}
 .groups h3{font-size:1rem;color:var(--muted);font-family:var(--body);font-weight:700;text-transform:uppercase;letter-spacing:.07em;font-size:.78rem}
 .glist{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.gwrap{position:relative;display:flex}
+.gwrap .gcard{flex:1;padding-right:44px}
+.gdel{position:absolute;top:8px;right:8px;border:0;background:transparent;color:var(--muted);border-radius:8px;cursor:pointer;font-size:1.15rem;line-height:1;padding:5px 8px;opacity:.55}
+.gwrap:hover .gdel,.gdel:focus-visible{opacity:1}
+.gdel:hover{background:var(--red-soft);color:var(--red)}
+.gdel.armed{opacity:1;background:var(--red);color:#fff;font-size:.82rem;font-weight:700;padding:6px 10px}
 .gcard{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1px solid var(--rule);background:var(--sheet);border-radius:var(--radius);padding:12px 14px;cursor:pointer}
 .gcard:hover{border-color:var(--blue)}
 .gcard b{font-family:var(--display);font-size:1.15rem}
@@ -152,8 +158,12 @@ select,input[type=text]{background:var(--sheet);border:1px solid var(--rule);bor
 .donebox .tick{width:64px;height:64px;border-radius:50%;background:var(--ok);color:var(--sheet);font-size:34px;font-weight:700;display:flex;align-items:center;justify-content:center}
 .donebox h2{font-size:clamp(1.4rem,2.6vw,1.8rem)}
 .donebox .dmain{margin:0;font-weight:700;font-size:1.05rem}
-.nextbar{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap;background:var(--blue-soft);border-radius:16px;padding:16px 22px}
-.nextbar p{margin:0;max-width:60ch}
+.nextbar{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:14px 16px 4px}
+.nextbar p{margin:0;font-family:var(--display);font-size:1.25rem;font-weight:700}
+.nextbar small{color:var(--muted);font-size:.92rem}
+.nextbar .btn{margin-top:10px;font-size:1.2rem;padding:14px 46px;border-radius:12px}
+.btn.send{background:var(--ok);color:var(--blue-ink);border-color:var(--ok);font-weight:700}
+.btn.send:hover{filter:brightness(1.08)}
 .ccount{margin-right:auto;align-self:center;font-family:var(--mono);font-size:.75rem;color:var(--muted);font-variant-numeric:tabular-nums}
 .ccount.over{color:var(--red);font-weight:600}
 .opt input[type=number]{max-width:9rem}
@@ -395,6 +405,7 @@ textarea.jtext.loading{color:var(--muted);font-style:italic}
     </div>
     <div class="nextbar" id="nextBar" hidden>
       <p id="nextTxt"></p>
+      <small id="nextSub"></small>
       <button class="btn primary big" id="nextBtn" type="button">Continuar →</button>
     </div>
     <p class="note err" id="homeErr" hidden></p>
@@ -488,7 +499,7 @@ textarea.jtext.loading{color:var(--muted);font-style:italic}
       <span class="sp"></span>
       <span class="progress" id="progress" hidden><span id="progressText"></span><button class="btn small" id="stopBtn" type="button">Detener</button></span>
       <button class="btn primary" id="genAllBtn" type="button">Generar juicios</button>
-      <button class="btn" id="sigedBtn" type="button">Enviar a SIGED / Portafolio</button>
+      <button class="btn send" id="sigedBtn" type="button">Enviar a SIGED / Portafolio</button>
       <button class="btn" id="copyAllBtn" type="button">Copiar planilla</button>
       <button class="btn" id="xlsxBtn" type="button">Descargar Excel</button>
     </div>
@@ -1017,11 +1028,39 @@ function renderHome(){
     b.children[1].textContent=[g.materia,g.periodo].filter(Boolean).join(" · ")||"—";
     b.children[2].textContent= n ? (d===n ? `${n} alumnos · todos con juicio` : `${n} alumnos · faltan ${n-d} juicios`) : "Sin alumnos";
     b.onclick=()=>openGroup(g);
-    gl.appendChild(b);
+    const w=document.createElement("div"); w.className="gwrap";
+    const x=document.createElement("button"); x.type="button"; x.className="gdel"; x.textContent="✕"; x.title="Borrar este grupo"; x.setAttribute("aria-label","Borrar "+(g.nombre||"grupo"));
+    let t=null;
+    const disarm=()=>{ clearTimeout(t); x.classList.remove("armed"); x.textContent="✕"; };
+    x.onclick=async()=>{
+      if (!x.classList.contains("armed")){ x.classList.add("armed"); x.textContent="¿Borrar?"; t=setTimeout(disarm,3500); return; }
+      clearTimeout(t);
+      S.groups=S.groups.filter(y=>y.id!==g.id);
+      if (S.pending===g.id) setPending(null);
+      try{ await deleteGroupStore(g.id); }catch(err){}
+      renderHome(); renderTiles(); toast("Grupo borrado");
+    };
+    x.onblur=disarm;
+    w.append(b,x); gl.appendChild(w);
   });
   $("#noGroups").hidden=S.groups.length>0;
   $("#groupsBox h3").hidden=!S.groups.length;
   renderStyleFiles();
+}
+// Lists created in this visit that were never opened: a new load may replace them
+const FRESH=new Set();
+function nameKey(n){ return String(n||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-zñ ]/g," ").split(/\s+/).filter(Boolean).sort().join(" "); }
+function findSameGroup(items){
+  const keys=new Set(items.map(i=>nameKey(i.nombre)));
+  let best=null, bestScore=0;
+  S.groups.forEach(g=>{
+    if (g.id==="ejemplo" || !g.alumnos.length) return;
+    const gk=new Set(g.alumnos.map(a=>nameKey(a.nombre)));
+    let common=0; keys.forEach(k=>{ if(gk.has(k)) common++; });
+    const score=common/Math.max(keys.size,gk.size);
+    if (score>bestScore){ bestScore=score; best=g; }
+  });
+  return bestScore>=0.8 ? best : null;
 }
 function setPending(id){ S.pending=id||null; lsSet("juicios.pending", id||""); }
 function renderTiles(){
@@ -1040,13 +1079,16 @@ function renderTiles(){
   $("#tileJuicios").classList.toggle("done", ju);
   $("#juBadge").hidden=!ju; $("#juOpt").hidden=ju;
   $("#nextBar").hidden=!pend;
-  if (pend) $("#nextTxt").textContent = ju
-    ? `Todo listo para ${pend.nombre}: tus alumnos y tus juicios anteriores ya están cargados.`
-    : `La lista de ${pend.nombre} ya está cargada. Si querés que la IA escriba como vos, subí tus juicios anteriores; si no, tocá Continuar.`;
+  if (pend){
+    $("#nextTxt").textContent = ju ? "Todo listo" : "Lista cargada";
+    $("#nextSub").textContent = ju ? "" : "Los juicios anteriores son opcionales";
+    $("#nextSub").hidden = ju;
+  }
 }
 $("#alChange").onclick=()=>{ importTarget="new"; $("#fileAlumnos").click(); };
 $("#nextBtn").onclick=()=>{ const g=S.groups.find(x=>x.id===S.pending); setPending(null); if (g) openGroup(g); else { show("home"); renderHome(); } };
 function openGroup(g){
+  FRESH.delete(g.id);
   S.cur=g; S.example=g.id==="ejemplo"; if(!S.example) lsSet("juicios.last",g.id);
   show("sheet"); renderSheetView();
 }
@@ -1186,13 +1228,24 @@ $("#rvCreate").onclick=()=>{
     scheduleSave("perfil"); renderStyle();
   }
   if (rv.target==="new"){
+    // Same group loaded again: update it instead of adding a copy
+    const same=findSameGroup(items);
+    if (same){
+      items.forEach(p=>{ const ex=same.alumnos.find(a=>nameKey(a.nombre)===nameKey(p.nombre)); if(ex){ if(p.nota) ex.nota=p.nota; if(p.historial.length) ex.historial=p.historial; } else same.alumnos.push(mk(p)); });
+      same.actualizado=Date.now();
+      if (S.pending && S.pending!==same.id){ const old=S.groups.find(x=>x.id===S.pending); if (old && FRESH.has(old.id) && !old.alumnos.some(a=>a.apuntes||a.juicio)){ S.groups=S.groups.filter(x=>x.id!==old.id); deleteGroupStore(old.id).catch(()=>{}); } }
+      S.groups=[same,...S.groups.filter(x=>x!==same)]; scheduleSave("group",same);
+      setPending(same.id); show("home"); renderHome();
+      toast(`${same.nombre||"Ese grupo"} ya estaba: se actualizó`);
+      return;
+    }
     const g={id:nid(), nombre:$("#ngNombre").value.trim()||"Grupo nuevo", materia:$("#ngMateria").value.trim(), periodo:$("#ngPeriodo").value.trim(), alumnos:items.map(mk), actualizado:Date.now()};
     // Replace a list loaded a moment ago that was never opened
-    if (S.pending){ const old=S.groups.find(x=>x.id===S.pending); if (old && !old.alumnos.some(a=>a.apuntes||a.juicio)){ S.groups=S.groups.filter(x=>x.id!==old.id); deleteGroupStore(old.id).catch(()=>{}); } }
-    S.groups.unshift(g); scheduleSave("group",g);
+    if (S.pending){ const old=S.groups.find(x=>x.id===S.pending); if (old && FRESH.has(old.id) && !old.alumnos.some(a=>a.apuntes||a.juicio)){ S.groups=S.groups.filter(x=>x.id!==old.id); deleteGroupStore(old.id).catch(()=>{}); } }
+    S.groups.unshift(g); FRESH.add(g.id); scheduleSave("group",g);
     setPending(g.id);
     show("home"); renderHome();
-    toast(`Lista cargada: ${items.length} alumnos. Si querés, subí tus juicios anteriores y tocá Continuar.`);
+    toast(`${items.length} ${items.length===1?"alumno cargado":"alumnos cargados"}`);
   } else {
     const al=S.cur.alumnos; let added=0;
     items.forEach(p=>{ const ex=al.find(a=>a.nombre.trim().toLowerCase()===p.nombre.toLowerCase()); if(ex){ if(p.nota) ex.nota=p.nota; if(p.historial.length) ex.historial=p.historial; } else { al.push(mk(p)); added++; } });
