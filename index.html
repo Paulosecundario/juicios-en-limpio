@@ -554,7 +554,8 @@ dialog.ask .prow{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
           <span class="note" id="optMaxHint"></span></div>
         <div class="opt"><span class="lbl">Opciones</span>
           <label class="check"><input type="checkbox" id="optNombre"> Mencionar el nombre del estudiante</label>
-          <label class="check"><input type="checkbox" id="optReco" checked> Cerrar con una sugerencia</label></div>
+          <label class="check"><input type="checkbox" id="optReco" checked> Cerrar con una sugerencia</label>
+          <label class="check" title="9-10: Avance destacado · 7-8: Avance significativo · 5-6: Avance moderado · 3-4: Avance escaso · 1-2: Avance mínimo"><input type="checkbox" id="optAvance"> Empezar con el avance (modelo UTU)</label></div>
       </div>
       <div class="prow"><button class="btn ghost" id="styleClose" type="button">Cerrar</button></div>
     </section>
@@ -593,7 +594,7 @@ const words = t => (t||"").trim().split(/\s+/).filter(Boolean).length;
 const fmtN = n => n.toLocaleString("es-UY");
 function escapeHtml(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
 
-const PERFIL_DEF = { ejemplos:"", archivos:[], extension:"media", persona:"tercera", usarNombre:false, recomendacion:true };
+const PERFIL_DEF = { ejemplos:"", archivos:[], extension:"media", persona:"tercera", usarNombre:false, recomendacion:true, avance:false };
 function exampleGroup(){
   const a = (nombre,nota,apuntes,juicio,tipo) => ({id:nid(),nombre,nota,apuntes,juicio:juicio||"",tipo:tipo||"",editado:false});
   return { id:"ejemplo", nombre:"3º 2", materia:"Informática", periodo:"1ª reunión (ejemplo)", alumnos:[
@@ -1525,7 +1526,8 @@ REGLAS
 - El tono tiene que ser coherente con la nota: no elogies en exceso una nota baja ni critiques una alta. Si no hay nota, guiate solo por los apuntes.
 - Respetuoso y constructivo. Nunca descalificante, sin diagnósticos, sin temas familiares, de salud o privados aunque aparezcan en los apuntes.
 - No menciones la nota numérica en el juicio.
-${lim ? `- LÍMITE ESTRICTO: cada juicio debe tener como máximo ${lim} caracteres en total, contando espacios y signos de puntuación (unas ${Math.max(8,Math.round(lim/6.5))} palabras). La plataforma no acepta más. Si no entra todo, quedate con lo más importante de los apuntes y escribí oraciones cortas.` : `- Extensión: ${ext}.`}
+${p.avance ? `- No escribas el descriptor de avance ("Avance destacado", "Avance moderado", etc.) ni lo menciones: la aplicación lo agrega sola al principio. Empezá directamente con el juicio.
+` : ""}${lim ? `- LÍMITE ESTRICTO: cada juicio debe tener como máximo ${p.avance ? lim-24 : lim} caracteres en total, contando espacios y signos de puntuación (unas ${Math.max(8,Math.round(lim/6.5))} palabras). La plataforma no acepta más. Si no entra todo, quedate con lo más importante de los apuntes y escribí oraciones cortas.` : `- Extensión: ${ext}.`}
 - ${per}
 - ${p.usarNombre?"Podés mencionar el nombre de pila del estudiante una vez, de forma natural.":"No menciones el nombre del estudiante."}
 - ${p.recomendacion?"Terminá con una sugerencia breve y concreta para seguir mejorando.":"No agregues sugerencias ni recomendaciones al final."}
@@ -1572,14 +1574,14 @@ async function generar(list, regen){
       let res = await aiJson(buildPrompt(chunk), opts);
       if (res && !Array.isArray(res)) res = res.juicios || res.estudiantes || Object.values(res).find(Array.isArray) || [];
       const byId={}; (res||[]).forEach(o=>{ if(o && o.id!=null) byId[String(o.id)]=o; });
-      chunk.forEach(a=>{ const o=byId[a.id]; if(o && typeof o.juicio==="string" && o.juicio.trim()){ a.juicio=o.juicio.trim(); a.tipo=o.tipo==="especifico"?"especifico":"generico"; a.editado=false; a.firma=firma(a); hechos++; } refreshRow(a,!!o); });
+      chunk.forEach(a=>{ const o=byId[a.id]; if(o && typeof o.juicio==="string" && o.juicio.trim()){ a.juicio=withAvance(a,o.juicio.trim()); a.tipo=o.tipo==="especifico"?"especifico":"generico"; a.editado=false; a.firma=firma(a); hechos++; } refreshRow(a,!!o); });
       const lim=charLimit(), over=lim ? chunk.filter(a=>a.juicio.length>lim) : [];
       if (over.length){
         $("#progressText").textContent="Ajustando al largo máximo…";
         try{
-          let r2=await aiJson(`Acortá cada uno de estos juicios escolares para que tenga como máximo ${lim} caracteres en total, contando espacios y puntuación. Mantené el sentido, el tono y el español formal de Uruguay. No agregues nada nuevo.\nRespondé solo con un array JSON: [{"id":"abc","juicio":"..."}]\n\n${JSON.stringify(over.map(a=>({id:a.id,juicio:a.juicio})))}`, {signal:S.ctl.signal, cache:false});
+          let r2=await aiJson(`Acortá cada uno de estos juicios escolares para que no pase de los caracteres que indica "max", contando espacios y puntuación. Mantené el sentido, el tono y el español formal de Uruguay. No agregues nada nuevo.\nRespondé solo con un array JSON: [{"id":"abc","juicio":"..."}]\n\n${JSON.stringify(over.map(a=>{ const pre=a.juicio.length-sinAvance(a.juicio).length; return {id:a.id, max:lim-pre, juicio:sinAvance(a.juicio)}; }))}`, {signal:S.ctl.signal, cache:false});
           if (r2 && !Array.isArray(r2)) r2=Object.values(r2).find(Array.isArray)||[];
-          (r2||[]).forEach(o=>{ const a=over.find(x=>x.id===String(o&&o.id)); if(a && typeof o.juicio==="string" && o.juicio.trim() && o.juicio.trim().length<a.juicio.length) a.juicio=o.juicio.trim(); });
+          (r2||[]).forEach(o=>{ const a=over.find(x=>x.id===String(o&&o.id)); if(a && typeof o.juicio==="string" && o.juicio.trim() && withAvance(a,o.juicio.trim()).length<a.juicio.length) a.juicio=withAvance(a,o.juicio.trim()); });
         } catch(e){ if (e && e.code==="cancelled") throw e; }
         over.forEach(a=>{ if (a.juicio.length>lim) a.juicio=cutToLimit(a.juicio,lim); refreshRow(a,true); });
       }
@@ -1628,6 +1630,16 @@ $("#egDelete").onclick=async e=>{
 // Character limit for each juicio: what the teacher set, or the platform's own limit
 const PLAT_LIMIT={pf:150, siged:600};
 function charLimit(){ const v=parseInt(S.perfil.maxChars,10); return v>=60 ? v : (PLAT_LIMIT[S.perfil.plataforma]||0); }
+// UTU model: the juicio starts with the progress descriptor that matches the grade
+function avanceDe(nota){ const v=parseInt(nota,10); if(!v) return ""; return v>=9?"Avance destacado":v>=7?"Avance significativo":v>=5?"Avance moderado":v>=3?"Avance escaso":"Avance mínimo"; }
+const AV_RE=/^\s*avance\s+(destacado|significativo|moderado|escaso|m[ií]nimo)\s*[.:;,\-–]?\s*/i;
+function sinAvance(t){ return String(t||"").replace(AV_RE,""); }
+function withAvance(a,t){
+  let body=sinAvance(t).trim();
+  const d=S.perfil.avance ? avanceDe(a.nota) : "";
+  if (!d) return body;
+  return body ? `${d}. ${body.charAt(0).toUpperCase()}${body.slice(1)}` : `${d}.`;
+}
 function cutToLimit(t,lim){
   t=String(t).trim(); if (t.length<=lim) return t;
   const cut=t.slice(0,lim), dot=Math.max(cut.lastIndexOf(". "),cut.endsWith(".")?cut.length-1:-1);
@@ -1639,7 +1651,7 @@ function renderStyle(){
   const p=S.perfil; $("#optExt").value=p.extension;
   const def=PLAT_LIMIT[p.plataforma]; $("#optMax").value=charLimit()||""; $("#optMax").placeholder="Sin límite";
   $("#optMaxHint").textContent = def ? `${p.plataforma==="pf"?"Portafolio Docente":"SIGED"} acepta hasta ${def}.` : "Dejalo vacío si tu plataforma no tiene límite."; $("#optPersona").value=p.persona;
-  $("#optNombre").checked=!!p.usarNombre; $("#optReco").checked=!!p.recomendacion;
+  $("#optNombre").checked=!!p.usarNombre; $("#optReco").checked=!!p.recomendacion; $("#optAvance").checked=!!p.avance;
   const nf=(p.archivos||[]).length, np=(p.ejemplos||"").split(/\n\s*\n/).filter(s=>s.trim()).length;
   const bits=[]; if(nf) bits.push(`${nf} ${nf===1?"archivo":"archivos"} de juicios anteriores`); if(np) bits.push(`${np} ${np===1?"juicio pegado":"juicios pegados"}`);
   $("#styleSummary").textContent = bits.length ? `Imita tu estilo a partir de ${bits.join(" y ")}. Los cambiás desde Inicio.` : "Todavía no subiste juicios anteriores, así que escribe con un estilo neutro. Subilos desde Inicio para que escriba como vos.";
@@ -1647,12 +1659,18 @@ function renderStyle(){
 }
 function styleChanged(){
   const mx=parseInt($("#optMax").value,10);
+  const av=$("#optAvance").checked, avChanged=av!==!!S.perfil.avance;
   Object.assign(S.perfil,{ extension:$("#optExt").value, persona:$("#optPersona").value, usarNombre:$("#optNombre").checked, recomendacion:$("#optReco").checked,
-    maxChars: mx>=60 && mx!==PLAT_LIMIT[S.perfil.plataforma] ? mx : null });
+    maxChars: mx>=60 && mx!==PLAT_LIMIT[S.perfil.plataforma] ? mx : null, avance:av });
+  // Put or take the descriptor on the juicios already written, without calling the AI
+  if (avChanged && S.cur && !S.example){
+    let n=0; S.cur.alumnos.forEach(a=>{ if(!a.juicio.trim()) return; const t=withAvance(a,a.juicio); if(t!==a.juicio){ a.juicio=t; n++; } });
+    if (n){ scheduleSave(); toast(av ? `Se agregó el avance a ${n} juicios` : `Se quitó el avance de ${n} juicios`); }
+  }
   if (S.view==="sheet") renderSheet();
   scheduleSave("perfil");
 }
-["optExt","optPersona","optNombre","optReco","optMax"].forEach(id=>$("#"+id).addEventListener("change",styleChanged));
+["optExt","optPersona","optNombre","optReco","optMax","optAvance"].forEach(id=>$("#"+id).addEventListener("change",styleChanged));
 
 /* ---------- export ---------- */
 function toast(t){ const el=$("#toast"); el.textContent=t; el.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>el.hidden=true,2800); }
