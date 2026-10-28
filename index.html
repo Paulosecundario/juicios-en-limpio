@@ -18,7 +18,7 @@
 :root{
   --paper:#f3f6fb; --sheet:#ffffff; --ink:#18213a; --muted:#5a6480; --rule:#dde3ee; --rule-soft:#eef1f7; --rule-strong:#b9c3d8;
   --blue:#2340a8; --blue-soft:#e7ecfb; --blue-ink:#ffffff;
-  --red:#b93a26; --red-soft:#fbe9e5; --ok:#2b7a4b; --ok-soft:#e3f3e9; --warn:#8f5d00; --warn-soft:#fbf0d9;
+  --red:#b93a26; --red-soft:#fbe9e5; --vio:#6b3fc9; --vio-soft:#f0eafd; --ok:#2b7a4b; --ok-soft:#e3f3e9; --warn:#8f5d00; --warn-soft:#fbf0d9;
   --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
   --body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
   --mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -27,13 +27,13 @@
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --paper:#0e1320; --sheet:#151b2b; --ink:#e5e9f3; --muted:#97a1bb; --rule:#28304a; --rule-soft:#1c2336; --rule-strong:#3c4769;
   --blue:#93a8ff; --blue-soft:#1e2850; --blue-ink:#0e1320;
-  --red:#ff8b75; --red-soft:#3a1d19; --ok:#73d39c; --ok-soft:#14301f; --warn:#f2bb55; --warn-soft:#33270d;
+  --red:#ff8b75; --red-soft:#3a1d19; --vio:#b9a0ff; --vio-soft:#251c45; --ok:#73d39c; --ok-soft:#14301f; --warn:#f2bb55; --warn-soft:#33270d;
   color-scheme:dark;
 }}
 :root[data-theme="dark"]{
   --paper:#0e1320; --sheet:#151b2b; --ink:#e5e9f3; --muted:#97a1bb; --rule:#28304a; --rule-soft:#1c2336; --rule-strong:#3c4769;
   --blue:#93a8ff; --blue-soft:#1e2850; --blue-ink:#0e1320;
-  --red:#ff8b75; --red-soft:#3a1d19; --ok:#73d39c; --ok-soft:#14301f; --warn:#f2bb55; --warn-soft:#33270d;
+  --red:#ff8b75; --red-soft:#3a1d19; --vio:#b9a0ff; --vio-soft:#251c45; --ok:#73d39c; --ok-soft:#14301f; --warn:#f2bb55; --warn-soft:#33270d;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -273,12 +273,13 @@ dialog.ask::backdrop{background:rgba(14,19,32,.45)}
 dialog.ask h3{font-family:var(--display);font-size:1.3rem;margin:0 0 6px}
 dialog.ask p{margin:0 0 18px;color:var(--muted)}
 dialog.ask .prow{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
-.avtog{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--rule);background:var(--sheet);border-radius:999px;padding:6px 14px 6px 8px;cursor:pointer;white-space:nowrap;font-weight:600;font-size:.92rem;user-select:none}
+.avtog{display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--vio);background:var(--sheet);color:var(--vio);border-radius:999px;padding:6px 14px 6px 8px;cursor:pointer;white-space:nowrap;font-weight:700;font-size:.92rem;user-select:none}
 .avtog input{position:absolute;opacity:0;pointer-events:none}
 .avtog .sw{width:32px;height:18px;border-radius:999px;background:var(--rule-strong);position:relative;transition:background .15s;flex:none}
 .avtog .sw::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s}
-.avtog:has(input:checked){border-color:var(--ok);background:var(--ok-soft);color:var(--ok)}
-.avtog:has(input:checked) .sw{background:var(--ok)}
+.avtog:hover{background:var(--vio-soft)}
+.avtog:has(input:checked){background:var(--vio-soft)}
+.avtog:has(input:checked) .sw{background:var(--vio)}
 .avtog:has(input:checked) .sw::after{transform:translateX(14px)}
 .avtog:has(input:focus-visible){outline:2px solid var(--blue);outline-offset:2px}
 .keysrow{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap}
