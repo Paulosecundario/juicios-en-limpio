@@ -273,6 +273,16 @@ dialog.ask::backdrop{background:rgba(14,19,32,.45)}
 dialog.ask h3{font-family:var(--display);font-size:1.3rem;margin:0 0 6px}
 dialog.ask p{margin:0 0 18px;color:var(--muted)}
 dialog.ask .prow{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.avtog{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--rule);background:var(--sheet);border-radius:999px;padding:6px 14px 6px 8px;cursor:pointer;white-space:nowrap;font-weight:600;font-size:.92rem;user-select:none}
+.avtog input{position:absolute;opacity:0;pointer-events:none}
+.avtog .sw{width:32px;height:18px;border-radius:999px;background:var(--rule-strong);position:relative;transition:background .15s;flex:none}
+.avtog .sw::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .15s}
+.avtog:has(input:checked){border-color:var(--ok);background:var(--ok-soft);color:var(--ok)}
+.avtog:has(input:checked) .sw{background:var(--ok)}
+.avtog:has(input:checked) .sw::after{transform:translateX(14px)}
+.avtog:has(input:focus-visible){outline:2px solid var(--blue);outline-offset:2px}
+.keysrow{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap}
+.keysrow .keys{margin:0}
 </style>
 
 <div class="wrap">
@@ -577,7 +587,10 @@ dialog.ask .prow{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
       <div class="prow"><button class="btn ghost" id="copyClose" type="button">Cerrar</button></div>
     </section>
 
-    <p class="note keys"><span class="kbd">Enter</span> baja por la misma columna · <span class="kbd">Tab</span> va de la nota a los apuntes y después a la nota del siguiente</p>
+    <div class="keysrow">
+      <p class="note keys"><span class="kbd">Enter</span> baja por la misma columna · <span class="kbd">Tab</span> va de la nota a los apuntes y después a la nota del siguiente</p>
+      <label class="avtog" title="9-10: Avance destacado · 7-8: Avance significativo · 5-6: Avance moderado · 3-4: Avance escaso · 1-2: Avance mínimo"><input type="checkbox" id="avQuick"><span class="sw" aria-hidden="true"></span>Empezar con el avance (UTU)</label>
+    </div>
     <section class="sheet" id="sheet"></section>
     <p class="note">Notas de 1 a 12. En "Apuntes" escribí como te salga: "re participativo, entrega todo" alcanza. Sin apuntes, el juicio sale genérico según la nota; con apuntes, sale específico. Revisá siempre el juicio antes de pasarlo.</p>
   </main>
@@ -1651,7 +1664,7 @@ function renderStyle(){
   const p=S.perfil; $("#optExt").value=p.extension;
   const def=PLAT_LIMIT[p.plataforma]; $("#optMax").value=charLimit()||""; $("#optMax").placeholder="Sin límite";
   $("#optMaxHint").textContent = def ? `${p.plataforma==="pf"?"Portafolio Docente":"SIGED"} acepta hasta ${def}.` : "Dejalo vacío si tu plataforma no tiene límite."; $("#optPersona").value=p.persona;
-  $("#optNombre").checked=!!p.usarNombre; $("#optReco").checked=!!p.recomendacion; $("#optAvance").checked=!!p.avance;
+  $("#optNombre").checked=!!p.usarNombre; $("#optReco").checked=!!p.recomendacion; $("#optAvance").checked=!!p.avance; $("#avQuick").checked=!!p.avance;
   const nf=(p.archivos||[]).length, np=(p.ejemplos||"").split(/\n\s*\n/).filter(s=>s.trim()).length;
   const bits=[]; if(nf) bits.push(`${nf} ${nf===1?"archivo":"archivos"} de juicios anteriores`); if(np) bits.push(`${np} ${np===1?"juicio pegado":"juicios pegados"}`);
   $("#styleSummary").textContent = bits.length ? `Imita tu estilo a partir de ${bits.join(" y ")}. Los cambiás desde Inicio.` : "Todavía no subiste juicios anteriores, así que escribe con un estilo neutro. Subilos desde Inicio para que escriba como vos.";
@@ -1660,6 +1673,7 @@ function renderStyle(){
 function styleChanged(){
   const mx=parseInt($("#optMax").value,10);
   const av=$("#optAvance").checked, avChanged=av!==!!S.perfil.avance;
+  $("#avQuick").checked=av;
   Object.assign(S.perfil,{ extension:$("#optExt").value, persona:$("#optPersona").value, usarNombre:$("#optNombre").checked, recomendacion:$("#optReco").checked,
     maxChars: mx>=60 && mx!==PLAT_LIMIT[S.perfil.plataforma] ? mx : null, avance:av });
   // Put or take the descriptor on the juicios already written, without calling the AI
@@ -1670,6 +1684,7 @@ function styleChanged(){
   if (S.view==="sheet") renderSheet();
   scheduleSave("perfil");
 }
+$("#avQuick").addEventListener("change",e=>{ $("#optAvance").checked=e.target.checked; styleChanged(); });
 ["optExt","optPersona","optNombre","optReco","optMax","optAvance"].forEach(id=>$("#"+id).addEventListener("change",styleChanged));
 
 /* ---------- export ---------- */
