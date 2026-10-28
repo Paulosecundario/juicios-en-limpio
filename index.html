@@ -284,6 +284,7 @@ dialog.ask .prow{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 .avtog:has(input:focus-visible){outline:2px solid var(--blue);outline-offset:2px}
 .keysrow{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap}
 .keysrow .keys{margin:0}
+.avtog[hidden],label.check[hidden]{display:none !important}
 </style>
 
 <div class="wrap">
@@ -1540,8 +1541,8 @@ REGLAS
 - El tono tiene que ser coherente con la nota: no elogies en exceso una nota baja ni critiques una alta. Si no hay nota, guiate solo por los apuntes.
 - Respetuoso y constructivo. Nunca descalificante, sin diagnósticos, sin temas familiares, de salud o privados aunque aparezcan en los apuntes.
 - No menciones la nota numérica en el juicio.
-${p.avance ? `- No escribas el descriptor de avance ("Avance destacado", "Avance moderado", etc.) ni lo menciones: la aplicación lo agrega sola al principio. Empezá directamente con el juicio.
-` : ""}${lim ? `- LÍMITE ESTRICTO: cada juicio debe tener como máximo ${p.avance ? lim-24 : lim} caracteres en total, contando espacios y signos de puntuación (unas ${Math.max(8,Math.round(lim/6.5))} palabras). La plataforma no acepta más. Si no entra todo, quedate con lo más importante de los apuntes y escribí oraciones cortas.` : `- Extensión: ${ext}.`}
+${avanceOn() ? `- No escribas el descriptor de avance ("Avance destacado", "Avance moderado", etc.) ni lo menciones: la aplicación lo agrega sola al principio. Empezá directamente con el juicio.
+` : ""}${lim ? `- LÍMITE ESTRICTO: cada juicio debe tener como máximo ${avanceOn() ? lim-24 : lim} caracteres en total, contando espacios y signos de puntuación (unas ${Math.max(8,Math.round(lim/6.5))} palabras). La plataforma no acepta más. Si no entra todo, quedate con lo más importante de los apuntes y escribí oraciones cortas.` : `- Extensión: ${ext}.`}
 - ${per}
 - ${p.usarNombre?"Podés mencionar el nombre de pila del estudiante una vez, de forma natural.":"No menciones el nombre del estudiante."}
 - ${p.recomendacion?"Terminá con una sugerencia breve y concreta para seguir mejorando.":"No agregues sugerencias ni recomendaciones al final."}
@@ -1645,12 +1646,13 @@ $("#egDelete").onclick=async e=>{
 const PLAT_LIMIT={pf:150, siged:600};
 function charLimit(){ const v=parseInt(S.perfil.maxChars,10); return v>=60 ? v : (PLAT_LIMIT[S.perfil.plataforma]||0); }
 // UTU model: the juicio starts with the progress descriptor that matches the grade
+function avanceOn(){ return !!S.perfil.avance && S.perfil.plataforma==="pf"; }
 function avanceDe(nota){ const v=parseInt(nota,10); if(!v) return ""; return v>=9?"Avance destacado":v>=7?"Avance significativo":v>=5?"Avance moderado":v>=3?"Avance escaso":"Avance mínimo"; }
 const AV_RE=/^\s*avance\s+(destacado|significativo|moderado|escaso|m[ií]nimo)\s*[.:;,\-–]?\s*/i;
 function sinAvance(t){ return String(t||"").replace(AV_RE,""); }
 function withAvance(a,t){
   let body=sinAvance(t).trim();
-  const d=S.perfil.avance ? avanceDe(a.nota) : "";
+  const d=avanceOn() ? avanceDe(a.nota) : "";
   if (!d) return body;
   return body ? `${d}. ${body.charAt(0).toUpperCase()}${body.slice(1)}` : `${d}.`;
 }
@@ -1666,6 +1668,7 @@ function renderStyle(){
   const def=PLAT_LIMIT[p.plataforma]; $("#optMax").value=charLimit()||""; $("#optMax").placeholder="Sin límite";
   $("#optMaxHint").textContent = def ? `${p.plataforma==="pf"?"Portafolio Docente":"SIGED"} acepta hasta ${def}.` : "Dejalo vacío si tu plataforma no tiene límite."; $("#optPersona").value=p.persona;
   $("#optNombre").checked=!!p.usarNombre; $("#optReco").checked=!!p.recomendacion; $("#optAvance").checked=!!p.avance; $("#avQuick").checked=!!p.avance;
+  const pf=p.plataforma==="pf"; $("#avQuick").closest("label").hidden=!pf; $("#optAvance").closest("label").hidden=!pf;
   const nf=(p.archivos||[]).length, np=(p.ejemplos||"").split(/\n\s*\n/).filter(s=>s.trim()).length;
   const bits=[]; if(nf) bits.push(`${nf} ${nf===1?"archivo":"archivos"} de juicios anteriores`); if(np) bits.push(`${np} ${np===1?"juicio pegado":"juicios pegados"}`);
   $("#styleSummary").textContent = bits.length ? `Imita tu estilo a partir de ${bits.join(" y ")}. Los cambiás desde Inicio.` : "Todavía no subiste juicios anteriores, así que escribe con un estilo neutro. Subilos desde Inicio para que escriba como vos.";
