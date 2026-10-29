@@ -285,6 +285,22 @@ dialog.ask .prow{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
 .keysrow{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap}
 .keysrow .keys{margin:0}
 .avtog[hidden],label.check[hidden]{display:none !important}
+.privq{display:inline-flex;align-items:center;gap:8px;margin:0 0 -4px;align-self:flex-start;width:fit-content;border:1.5px solid color-mix(in srgb,var(--warn) 45%,transparent);background:var(--warn-soft);color:var(--warn);border-radius:999px;padding:7px 16px 7px 12px;font:inherit;font-weight:700;font-size:.92rem;cursor:pointer}
+.privq:hover{border-color:var(--warn)}
+.privq svg{width:17px;height:17px;flex:none}
+dialog.ask.priv{max-width:min(540px,calc(100vw - 32px))}
+.privl{margin:4px 0 20px;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px}
+.privl li{color:var(--muted);line-height:1.5;padding-left:14px;border-left:3px solid var(--blue-soft)}
+.privl b{color:var(--ink);display:block}
+.sentbar{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap;background:var(--ok-soft);border:1px solid color-mix(in srgb,var(--ok) 40%,transparent);border-radius:14px;padding:12px 12px 12px 18px}
+.sentbar .sbtxt{flex:1;min-width:240px;display:flex;flex-direction:column;gap:2px}
+.sentbar .sbtxt b{color:var(--ok)}
+.sentbar .sbtxt span{color:var(--ink);font-size:.93rem}
+.extbtn{text-decoration:none;color:var(--ink);font-weight:600}
+.extbtn svg,.extlink svg{width:16px;height:16px;flex:none}
+.extlink{display:inline-flex;align-items:center;gap:6px;margin:8px 0 0 14px;width:fit-content;color:var(--muted);font-size:.9rem;font-weight:600;text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 35%,transparent);text-underline-offset:3px;vertical-align:middle}
+.extlink:hover{color:var(--blue)}
+.extlink[hidden]{display:none}
 </style>
 
 <div class="wrap">
@@ -339,6 +355,7 @@ dialog.ask .prow{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
       <h1>Juicios <em>en limpio</em></h1>
       <p>Subí la lista del grupo, escribí cómo le fue a cada uno como te salga, y la IA lo pasa en limpio con tu estilo.</p>
       <p class="platchip"><span class="pdot" aria-hidden="true"></span><span>Cargás en <b id="platName"></b></span><button class="btn" id="platChange" type="button">Cambiar</button></p>
+      <a class="extlink" id="extHome" href="https://chromewebstore.google.com/detail/modagngcponmbllndkhnlocmgfiiedjg" target="_blank" rel="noopener"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9m-4-4 4 4 4-4M4 15h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Instalar el ayudante de Chrome</a>
     </div>
 
     <div class="tiles">
@@ -446,6 +463,7 @@ dialog.ask .prow{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
       <p class="note" id="noGroups">Todavía no tenés grupos. <button class="link" id="exampleBtn" type="button">Ver un ejemplo</button></p>
     </div>
 
+    <button class="privq" id="privBtn" type="button"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="9" width="12" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 9V6.5a3 3 0 0 1 6 0V9" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>¿Quiénes pueden ver los datos que subo de mis alumnos?</button>
     <section class="databox" id="dataBox" aria-labelledby="dataTitle">
       <svg class="dico" viewBox="0 0 48 48" aria-hidden="true">
         <path d="M12 6h17l9 9v27H12z" fill="var(--blue-soft)" stroke="var(--blue)" stroke-width="2.5" stroke-linejoin="round"/>
@@ -534,6 +552,11 @@ dialog.ask .prow{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
       <button class="btn" id="xlsxBtn" type="button">Descargar Excel</button>
     </div>
     <p class="note err" id="aiNote" hidden></p>
+    <div class="sentbar" id="sentBar" hidden>
+      <div class="sbtxt"><b id="sentTitle">Listo, ya está copiado</b><span id="sentHow"></span></div>
+      <a class="btn extbtn" href="https://chromewebstore.google.com/detail/modagngcponmbllndkhnlocmgfiiedjg" target="_blank" rel="noopener"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v9m-4-4 4 4 4-4M4 15h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>¿No tenés el ayudante? Instalalo</a>
+      <button class="btn ghost small" id="sentClose" type="button" aria-label="Cerrar">✕</button>
+    </div>
     <dialog class="ask" id="redoAsk">
       <h3>¿Rehacer los juicios?</h3>
       <p id="redoAskTxt"></p>
@@ -597,6 +620,16 @@ dialog.ask .prow{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
     <p class="note">Notas de 1 a 12. En "Apuntes" escribí como te salga: "re participativo, entrega todo" alcanza. Sin apuntes, el juicio sale genérico según la nota; con apuntes, sale específico. Revisá siempre el juicio antes de pasarlo.</p>
   </main>
 </div>
+<dialog class="ask priv" id="privAsk" aria-labelledby="privTitle">
+  <h3 id="privTitle">¿Quién ve tus datos?</h3>
+  <ul class="privl">
+    <li><b>Se guardan solo en esta compu.</b> Tus grupos, notas y juicios quedan en este navegador. No se suben a ninguna página ni a una cuenta, y otros docentes no los ven desde sus compus.</li>
+    <li><b>La IA recibe lo justo para redactar.</b> Al generar, se envían la nota, tus apuntes y tus juicios anteriores a Claude, la IA de Anthropic. El nombre del alumno no se envía, salvo que actives "Mencionar el nombre". <span id="privTrain"></span></li>
+    <li><b>El ayudante de Chrome no envía nada.</b> Solo copia y pega entre la app y la plataforma, dentro de tu navegador.</li>
+    <li><b>Ojo en compus compartidas.</b> Quien abra la app en esta misma compu ve tus grupos. Si no es tu compu, al terminar descargá tus datos y borrá los grupos con la ✕.</li>
+  </ul>
+  <div class="prow"><button class="btn primary" id="privOk" type="button">Entendido</button></div>
+</dialog>
 <div class="toast" id="toast" hidden></div>
 
 <script>
@@ -961,6 +994,7 @@ const PLAT = {
 function applyPlat(){
   const p=S.perfil.plataforma||"siged", P=PLAT[p]||PLAT.siged;
   $("#platName").textContent=P.name;
+  $("#extHome").hidden = !P.send;
   $("#sigedBtn").hidden=!P.send; $("#sigedBtn").textContent=P.send||"";
   $("#howSigedBtn").hidden=!P.how; $("#howSigedSep").hidden=!P.how; $("#howSigedOr").hidden=!!P.how; $("#howSigedBtn").textContent=P.how||"";
   $("#howPf").hidden=p!=="pf"; $("#howSig").hidden=p!=="siged";
@@ -1128,6 +1162,7 @@ $("#alChange").onclick=()=>{ importTarget="new"; $("#fileAlumnos").click(); };
 $("#nextBtn").onclick=()=>{ const g=S.groups.find(x=>x.id===S.pending); setPending(null); if (g) openGroup(g); else { show("home"); renderHome(); } };
 function openGroup(g){
   FRESH.delete(g.id);
+  $("#sentBar").hidden=true;
   S.cur=g; S.example=g.id==="ejemplo"; if(!S.example) lsSet("juicios.last",g.id);
   show("sheet"); renderSheetView();
 }
@@ -1619,6 +1654,11 @@ $("#genAllBtn").onclick=()=>{
   $("#redoYes").onclick=()=>{ d.close(); generar(list,true); };
 };
 $("#redoNo").onclick=()=>$("#redoAsk").close();
+$("#privBtn").onclick=()=>{
+  $("#privTrain").textContent = S.sample ? "Se usa tu propia cuenta de Claude, con su configuración de privacidad." : "Anthropic no usa esos datos para entrenar su IA.";
+  $("#privAsk").showModal(); $("#privOk").focus(); };
+$("#privOk").onclick=()=>$("#privAsk").close();
+$("#privAsk").addEventListener("click",e=>{ if(e.target===e.currentTarget) e.currentTarget.close(); });
 $("#redoAsk").addEventListener("click",e=>{ if(e.target===e.currentTarget) e.currentTarget.close(); });
 
 /* ---------- panels ---------- */
@@ -1707,10 +1747,15 @@ $("#sigedBtn").onclick=()=>{
   const alumnos=g.alumnos.filter(a=>a.nombre.trim() && (a.juicio.trim()||a.nota)).map(a=>({nombre:a.nombre.trim(), nota:a.nota||"", juicio:a.juicio.trim()}));
   if(!alumnos.length){ toast("Todavía no hay juicios ni notas para enviar"); return; }
   const payload=JSON.stringify({juiciosEnLimpio:1, grupo:[g.nombre,g.materia,g.periodo].filter(Boolean).join(" · "), alumnos});
-  copyText(payload,`${alumnos.length} alumnos copiados. Pegalos en el panel de Juicios en Limpio, en SIGED o en el Portafolio.`).then(ok=>{
+  copyText(payload,`${alumnos.length} alumnos copiados`).then(ok=>{
+    const P=PLAT[S.perfil.plataforma]||PLAT.pf;
+    $("#sentTitle").textContent=`Listo: ${alumnos.length} ${alumnos.length===1?"alumno copiado":"alumnos copiados"}`;
+    $("#sentHow").textContent=`Abrí ${P.name==="Otra plataforma"?"la plataforma":P.name} en la pantalla de los promedios del grupo. En el cuadro azul de abajo a la derecha pegá con Ctrl+V y tocá Cargar.`;
+    $("#sentBar").hidden=false;
     if(!ok){ closePanels(); $("#copyPanel").hidden=false; $("#copyPanel h3").textContent="Copiá esto y pegalo en SIGED o en el Portafolio"; const b=$("#copyBox"); b.value=payload; b.focus(); b.select(); }
   });
 };
+$("#sentClose").onclick=()=>$("#sentBar").hidden=true;
 $("#xlsxBtn").onclick=async()=>{
   const b=$("#xlsxBtn"); b.disabled=true;
   try{
