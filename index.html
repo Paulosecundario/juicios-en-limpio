@@ -1750,7 +1750,7 @@ $("#sigedBtn").onclick=()=>{
   copyText(payload,`${alumnos.length} alumnos copiados`).then(ok=>{
     const P=PLAT[S.perfil.plataforma]||PLAT.pf;
     $("#sentTitle").textContent=`Listo: ${alumnos.length} ${alumnos.length===1?"alumno copiado":"alumnos copiados"}`;
-    $("#sentHow").textContent=`Abrí ${P.name==="Otra plataforma"?"la plataforma":P.name} en la pantalla de los promedios del grupo. En el cuadro azul de abajo a la derecha pegá con Ctrl+V y tocá Cargar.`;
+    $("#sentHow").textContent=`Abrí ${P.name==="Otra plataforma"?"la plataforma":P.name} en la pantalla de los promedios del grupo. En el cuadro azul de abajo a la derecha pegá con Ctrl+V y tocá Cargar. Ese cuadro solo aparece si tenés instalado el ayudante de Chrome.`;
     $("#sentBar").hidden=false;
     if(!ok){ closePanels(); $("#copyPanel").hidden=false; $("#copyPanel h3").textContent="Copiá esto y pegalo en SIGED o en el Portafolio"; const b=$("#copyBox"); b.value=payload; b.focus(); b.select(); }
   });
