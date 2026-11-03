@@ -590,7 +590,7 @@ dialog.ask.priv{max-width:min(540px,calc(100vw - 32px))}
         <div class="opt"><span class="lbl">Opciones</span>
           <label class="check"><input type="checkbox" id="optNombre"> Mencionar el nombre del estudiante</label>
           <label class="check"><input type="checkbox" id="optReco" checked> Cerrar con una sugerencia</label>
-          <label class="check" title="9-10: Avance destacado · 7-8: Avance significativo · 5-6: Avance moderado · 3-4: Avance escaso · 1-2: Avance mínimo"><input type="checkbox" id="optAvance"> Empezar con el avance (modelo UTU)</label></div>
+          <label class="check" title="Escala del REDE (ANEP) · 9-10: destacado · 7-8: significativo · 5-6: moderado · 3-4: escaso · 1-2: mínimo"><input type="checkbox" id="optAvance"> Empezar con el nivel de avance</label></div>
       </div>
       <div class="prow"><button class="btn ghost" id="styleClose" type="button">Cerrar</button></div>
     </section>
@@ -614,7 +614,7 @@ dialog.ask.priv{max-width:min(540px,calc(100vw - 32px))}
 
     <div class="keysrow">
       <p class="note keys"><span class="kbd">Enter</span> baja por la misma columna · <span class="kbd">Tab</span> va de la nota a los apuntes y después a la nota del siguiente</p>
-      <label class="avtog" title="9-10: Avance destacado · 7-8: Avance significativo · 5-6: Avance moderado · 3-4: Avance escaso · 1-2: Avance mínimo"><input type="checkbox" id="avQuick"><span class="sw" aria-hidden="true"></span>Empezar con el avance (UTU)</label>
+      <label class="avtog" title="Escala del REDE (ANEP) · 9-10: destacado · 7-8: significativo · 5-6: moderado · 3-4: escaso · 1-2: mínimo"><input type="checkbox" id="avQuick"><span class="sw" aria-hidden="true"></span>Empezar con el nivel de avance</label>
     </div>
     <section class="sheet" id="sheet"></section>
     <p class="note">Notas de 1 a 12. En "Apuntes" escribí como te salga: "re participativo, entrega todo" alcanza. Sin apuntes, el juicio sale genérico según la nota; con apuntes, sale específico. Revisá siempre el juicio antes de pasarlo.</p>
@@ -1463,10 +1463,9 @@ function rowEl(a,i){
   nm.append(ni,chips);
   const nt=document.createElement("div"); nt.className="nota";
   const nin=document.createElement("input"); nin.type="text"; nin.inputMode="numeric"; nin.maxLength=2; nin.id="t_"+a.id; nin.dataset.col="t"; nin.value=a.nota; nin.placeholder="–"; nin.setAttribute("aria-label","Nota de 1 a 12");
-  const nw=document.createElement("small"); nw.textContent=notaWord(a.nota);
   nin.className=notaClass(a.nota);
-  nin.oninput=()=>{ let v=nin.value.replace(/\D/g,""); if(v && (parseInt(v,10)>12||v==="0")) v=v.slice(0,1); nin.value=v; a.nota=v; nin.className=notaClass(v); nw.textContent=notaWord(v); scheduleSave(); renderStats(); };
-  nt.append(nin,nw);
+  nin.oninput=()=>{ let v=nin.value.replace(/\D/g,""); if(v && (parseInt(v,10)>12||v==="0")) v=v.slice(0,1); nin.value=v; a.nota=v; nin.className=notaClass(v); scheduleSave(); renderStats(); };
+  nt.append(nin);
   const ap=document.createElement("div"); ap.className="apcell";
   const apl=document.createElement("label"); apl.className="mlabel"; apl.htmlFor="a_"+a.id; apl.textContent="Apuntes (borrador)";
   const at=document.createElement("textarea"); at.className="apuntes"; at.id="a_"+a.id; at.dataset.col="a"; at.value=a.apuntes; at.placeholder="Escribí como te salga…"; at.setAttribute("aria-label","Apuntes informales");
