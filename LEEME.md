@@ -5,14 +5,17 @@ Contenido de esta carpeta:
 - `index.html` — la app.
 - `icon.png` — el ícono de la pestaña.
 - `netlify.toml` — la configuración para Netlify.
+- `admin.html` — tu página para generar y manejar los códigos de acceso (entrás con tu contraseña de administrador).
+- `package.json` — le dice a Netlify qué usar para guardar los códigos.
 - `netlify/functions/ia.mjs` — el intermediario que habla con la IA de Claude. Guarda la clave en secreto y solo atiende a quien tiene un código de acceso.
+- `netlify/functions/admin.mjs` y `netlify/lib/accesos.mjs` — lo que usa la página de administración.
 
 ## 1. Subir la carpeta a GitHub (todo desde el navegador)
 
 1. Entrá a github.com y creá una cuenta si no tenés.
 2. Tocá **New repository**. Nombre: `juicios-en-limpio`. Podés dejarlo **Private**. Tocá **Create repository**.
 3. En la página del repositorio, tocá **uploading an existing file**.
-4. Arrastrá **todo lo que hay adentro** de esta carpeta (`index.html`, `icon.png`, `netlify.toml` y la carpeta `netlify`). Usá Chrome o Edge para que se suba también la carpeta.
+4. Arrastrá **todo lo que hay adentro** de esta carpeta (`index.html`, `admin.html`, `icon.png`, `netlify.toml`, `package.json` y la carpeta `netlify`). Usá Chrome o Edge para que se suba también la carpeta.
 5. Abajo, tocá **Commit changes**.
 
 ## 2. Publicar con Netlify
@@ -37,16 +40,23 @@ En Netlify: **Site configuration → Environment variables → Add a variable**.
 | Nombre | Valor |
 |---|---|
 | `ANTHROPIC_API_KEY` | la clave del paso 3 |
-| `ACCESS_CODES` | los códigos que vas a repartir, separados por comas. Ej: `abril-7k2p, colega-9xq4` |
+| `ADMIN_PASSWORD` | tu contraseña para entrar a la página de administración. Usá una larga (12 caracteres o más) y que no uses en otro lado |
+| `MONTHLY_LIMIT` (opcional) | el tope de juicios por mes de cada código. Si no la ponés, es 500 |
+| `ACCESS_CODES` (opcional) | códigos tuyos, sin tope y sin navegador fijo, separados por comas. Dejala solo con el tuyo, o borrala |
 | `MODEL` (opcional) | el modelo. Si no la ponés, usa `claude-haiku-4-5-20251001` |
 
 Después: **Deploys → Trigger deploy → Deploy site**, para que tome las variables.
 
 ## Cómo manejar los accesos
 
-- Para dar acceso: agregá un código nuevo en `ACCESS_CODES` y volvé a hacer **Trigger deploy**.
-- Para quitar acceso: borrá ese código y hacé **Trigger deploy**.
-- Usá un código distinto por persona, así podés quitárselo a una sola.
+Entrá a `tu-sitio.netlify.app/admin.html` y poné tu contraseña de administrador.
+
+- **Dar acceso:** escribí para quién es, poné una fecha de vencimiento si querés y tocá **Generar código**. Con **Copiar mensaje para mandarle** te queda un texto listo para WhatsApp.
+- **Cada código anda en un solo navegador:** el primero donde se usa. Si la persona lo prueba en otra compu, la app le dice que ya está en uso.
+- **Si cambió de compu o borró el navegador:** tocá **Liberar navegador** y el próximo navegador donde lo use queda como el nuevo.
+- **Tope:** 500 juicios por mes por código. Se renueva solo el día 1.
+- **Renovar o cortar:** cambiá la fecha de vencimiento, o tocá **Desactivar**. **Borrar** lo elimina para siempre.
+- Los códigos se guardan en el almacenamiento de Netlify (Blobs). No hace falta hacer Trigger deploy para dar o quitar accesos.
 - Los datos de cada docente quedan en su navegador y en su archivo de datos, nunca en el sitio.
 
 ## Para actualizar la app

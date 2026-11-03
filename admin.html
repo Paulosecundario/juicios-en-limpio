@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Accesos · Juicios en Limpio</title>
+<link rel="icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Admin page: a login card, then a form to create codes and a list of code cards. */
+:root{
+  --paper:#f3f6fb; --sheet:#ffffff; --ink:#18213a; --muted:#5a6480; --rule:#dde3ee; --rule-strong:#b9c3d8;
+  --blue:#2340a8; --blue-ink:#ffffff; --blue-soft:#e7ecfb; --ok:#2b7a4b; --ok-soft:#e3f3e9; --warn:#8f5d00; --warn-soft:#fbf0d9; --red:#b93a26; --red-soft:#fbe9e5;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif; --body:"Inter","Segoe UI",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--paper:#0e1320;--sheet:#151b2b;--ink:#e5e9f3;--muted:#97a1bb;--rule:#28304a;--rule-strong:#3c4769;--blue:#93a8ff;--blue-ink:#0e1320;--blue-soft:#1e2850;--ok:#73d39c;--ok-soft:#14301f;--warn:#f2bb55;--warn-soft:#33270d;--red:#ff8b75;--red-soft:#3a1d19;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#0e1320;--sheet:#151b2b;--ink:#e5e9f3;--muted:#97a1bb;--rule:#28304a;--rule-strong:#3c4769;--blue:#93a8ff;--blue-ink:#0e1320;--blue-soft:#1e2850;--ok:#73d39c;--ok-soft:#14301f;--warn:#f2bb55;--warn-soft:#33270d;--red:#ff8b75;--red-soft:#3a1d19;color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;padding:32px 16px 64px}
+.wrap{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+h1{font-family:var(--display);font-size:clamp(1.7rem,4vw,2.3rem);margin:0;letter-spacing:-.02em}
+h1 em{font-style:normal;color:var(--blue)}
+h2{font-family:var(--display);font-size:1.2rem;margin:0}
+.sub{color:var(--muted);margin:4px 0 0}
+.card{background:var(--sheet);border:1px solid var(--rule);border-radius:16px;padding:20px 22px;display:flex;flex-direction:column;gap:14px}
+label{font-size:.78rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+input{font:inherit;font-size:15px;font-weight:400;color:var(--ink);background:var(--paper);border:1px solid var(--rule-strong);border-radius:9px;padding:9px 12px;text-transform:none;letter-spacing:0}
+input:focus{outline:2px solid var(--blue);outline-offset:1px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.row label{flex:1;min-width:180px}
+.btn{font:inherit;font-weight:600;border:1px solid var(--rule);background:var(--sheet);color:var(--ink);border-radius:9px;padding:9px 14px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--blue)}
+.btn.primary{background:var(--blue);color:var(--blue-ink);border-color:var(--blue)}
+.btn.small{padding:5px 10px;font-size:.86rem}
+.btn.danger{color:var(--red)}
+.btn.danger.armed{background:var(--red);color:#fff;border-color:var(--red)}
+.btn:disabled{opacity:.5;cursor:default}
+.err{color:var(--red);margin:0;font-weight:600}
+.note{color:var(--muted);font-size:.88rem;margin:0}
+.newcode{background:var(--ok-soft);border:1.5px solid var(--ok);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.newcode b{color:var(--ok)}
+.newcode .big{font-family:var(--mono);font-size:1.5rem;font-weight:700;color:var(--ink);letter-spacing:.04em}
+.newcode .actions{display:flex;gap:8px;flex-wrap:wrap}
+.head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.filter{max-width:260px}
+.list{display:flex;flex-direction:column;gap:10px}
+.code{background:var(--sheet);border:1px solid var(--rule);border-radius:14px;padding:14px 16px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 16px}
+.code.off{opacity:.65}
+.ctop{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+.cname{font-weight:700;font-size:1.05rem}
+.cval{font-family:var(--mono);font-weight:700;color:var(--blue);background:var(--blue-soft);border-radius:7px;padding:2px 8px}
+.chip{font-size:.78rem;font-weight:700;border-radius:999px;padding:2px 9px}
+.chip.ok{background:var(--ok-soft);color:var(--ok)} .chip.warn{background:var(--warn-soft);color:var(--warn)} .chip.red{background:var(--red-soft);color:var(--red)} .chip.mut{background:var(--paper);color:var(--muted);border:1px solid var(--rule)}
+.cmeta{grid-column:1/-1;display:flex;gap:6px 18px;flex-wrap:wrap;color:var(--muted);font-size:.88rem}
+.bar{display:inline-flex;align-items:center;gap:8px}
+.bar i{display:inline-block;width:110px;height:7px;border-radius:9px;background:var(--rule);overflow:hidden;position:relative}
+.bar i b{position:absolute;inset:0 auto 0 0;background:var(--blue);border-radius:9px}
+.bar.hi i b{background:var(--warn)} .bar.full i b{background:var(--red)}
+.cbtns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+.cbtns input[type=date]{padding:4px 8px;font-size:.86rem}
+.empty{color:var(--muted);text-align:center;padding:24px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--sheet);border-radius:10px;padding:10px 16px;font-weight:600;z-index:9}
+@media (max-width:640px){.code{grid-template-columns:1fr}.cbtns{justify-content:flex-start}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Accesos de <em>Juicios en Limpio</em></h1>
+    <p class="sub">Generá un código por persona. Cada código anda en un solo navegador y tiene un tope de juicios por mes.</p>
+  </header>
+
+  <section class="card" id="login">
+    <h2>Entrar</h2>
+    <form class="row" id="loginForm">
+      <label>Contraseña de administrador<input type="password" id="pass" autocomplete="current-password" required></label>
+      <button class="btn primary" type="submit">Entrar</button>
+    </form>
+    <p class="err" id="loginErr" hidden></p>
+  </section>
+
+  <div id="panel" hidden>
+    <div class="wrap" style="max-width:none">
+      <section class="card">
+        <h2>Nuevo código</h2>
+        <form class="row" id="newForm">
+          <label>Para quién<input type="text" id="nNombre" placeholder="Ej: Abril — UTU San José" maxlength="80" required></label>
+          <label>Vence (opcional)<input type="date" id="nVence"></label>
+          <button class="btn primary" type="submit">Generar código</button>
+        </form>
+        <div class="newcode" id="newOut" hidden>
+          <b id="newFor"></b>
+          <span class="big" id="newCode"></span>
+          <div class="actions">
+            <button class="btn small" id="cpCode" type="button">Copiar código</button>
+            <button class="btn small" id="cpMsg" type="button">Copiar mensaje para mandarle</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="head">
+          <h2 id="listTitle">Códigos</h2>
+          <input class="filter" type="search" id="filter" placeholder="Buscar por nombre o código" aria-label="Buscar">
+        </div>
+        <p class="note" id="listNote"></p>
+        <div class="list" id="list"></div>
+      </section>
+      <p class="note"><button class="btn small" id="logout" type="button">Salir</button></p>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const API="/.netlify/functions/admin";
+let PASS="", CODES=[], LIM=500;
+const ss={ get(k){ try{return sessionStorage.getItem(k);}catch(e){return null;} }, set(k,v){ try{ v==null?sessionStorage.removeItem(k):sessionStorage.setItem(k,v);}catch(e){} } };
+const ERR={ bad_password:"Contraseña incorrecta.", admin_not_configured:"Falta la variable ADMIN_PASSWORD en Netlify (mínimo 8 caracteres). Agregala y hacé Trigger deploy.", storage_error:"No se pudo leer el almacenamiento de Netlify. Probá de nuevo en un rato.", bad_date:"La fecha no es válida.", not_found:"Ese código ya no existe." };
+
+function toast(t){ const el=$("#toast"); el.textContent=t; el.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>el.hidden=true,2600); }
+async function call(action, extra={}){
+  let r, d={};
+  try{ r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:PASS, action, ...extra})}); d=await r.json().catch(()=>({})); }
+  catch(e){ throw new Error("No hay conexión con el sitio."); }
+  if (!r.ok){ const e=new Error(ERR[d.error]||("Error: "+(d.error||r.status))); e.code=d.error; throw e; }
+  return d;
+}
+async function copy(t){ try{ await navigator.clipboard.writeText(t); toast("Copiado"); }catch(e){ prompt("Copialo desde acá:", t); } }
+const fecha=iso=>iso?new Date(iso).toLocaleDateString("es-UY",{day:"numeric",month:"short",year:"numeric"}):"";
+const fechaDia=d=>d?new Date(d+"T12:00:00").toLocaleDateString("es-UY",{day:"numeric",month:"short",year:"numeric"}):"";
+function hoy(){ return new Date(Date.now()-3*3600e3).toISOString().slice(0,10); }
+
+async function login(p){
+  PASS=p; $("#loginErr").hidden=true;
+  try{ const d=await call("list"); ss.set("adm",p); CODES=d.codigos; LIM=d.limite; $("#login").hidden=true; $("#panel").hidden=false; render(); }
+  catch(e){ PASS=""; ss.set("adm",null); $("#login").hidden=false; $("#panel").hidden=true; $("#loginErr").textContent=e.message; $("#loginErr").hidden=false; }
+}
+$("#loginForm").onsubmit=e=>{ e.preventDefault(); login($("#pass").value); };
+$("#logout").onclick=()=>{ PASS=""; ss.set("adm",null); location.reload(); };
+
+function render(){
+  const q=$("#filter").value.trim().toLowerCase();
+  const list=$("#list"); list.innerHTML="";
+  const shown=CODES.filter(c=>!q || c.nombre.toLowerCase().includes(q) || c.code.includes(q));
+  $("#listTitle").textContent=`Códigos (${CODES.length})`;
+  $("#listNote").textContent=`Tope: ${LIM} juicios por mes por código. Se renueva el día 1 de cada mes.`;
+  if (!shown.length){ list.innerHTML=`<p class="empty">${CODES.length?"No hay códigos con esa búsqueda.":"Todavía no generaste códigos."}</p>`; return; }
+  shown.forEach(c=>list.appendChild(card(c)));
+}
+function card(c){
+  const vencido=c.vence && c.vence<hoy();
+  const el=document.createElement("article"); el.className="code"+(!c.activo||vencido?" off":"");
+  const top=document.createElement("div"); top.className="ctop";
+  const nm=document.createElement("span"); nm.className="cname"; nm.textContent=c.nombre||"Sin nombre";
+  const cv=document.createElement("span"); cv.className="cval"; cv.textContent=c.code;
+  const st=document.createElement("span"); st.className="chip "+(!c.activo?"red":vencido?"red":c.navegador?"ok":"mut");
+  st.textContent=!c.activo?"Desactivado":vencido?"Vencido":c.navegador?"En uso":"Sin usar todavía";
+  top.append(nm,cv,st);
+  const btns=document.createElement("div"); btns.className="cbtns";
+  const b=(t,fn,cls="")=>{ const x=document.createElement("button"); x.type="button"; x.className="btn small "+cls; x.textContent=t; x.onclick=fn; return x; };
+  btns.append(b("Copiar",()=>copy(c.code)));
+  if (c.navegador) btns.append(b("Liberar navegador",async e=>{ await act(e.currentTarget,"release",c.code,"Listo: el próximo navegador que use el código queda como el nuevo."); }));
+  const dv=document.createElement("input"); dv.type="date"; dv.value=c.vence||""; dv.title="Vencimiento"; dv.setAttribute("aria-label","Vencimiento de "+(c.nombre||c.code));
+  dv.onchange=async()=>{ await act(dv,"extend",c.code, dv.value?`Vence el ${fechaDia(dv.value)}`:"Sin vencimiento",{vence:dv.value||null}); };
+  btns.append(dv);
+  btns.append(b(c.activo?"Desactivar":"Activar",async e=>{ await act(e.currentTarget,"toggle",c.code,c.activo?"Código desactivado":"Código activado"); }));
+  const del=b("Borrar",async e=>{ const x=e.currentTarget; if(!x.classList.contains("armed")){ x.classList.add("armed"); x.textContent="¿Borrar?"; setTimeout(()=>{x.classList.remove("armed"); x.textContent="Borrar";},3500); return; } await act(x,"delete",c.code,"Código borrado"); },"danger");
+  btns.append(del);
+  const meta=document.createElement("div"); meta.className="cmeta";
+  const pct=Math.min(100,Math.round(c.usados/(c.limite||LIM)*100));
+  meta.innerHTML=`<span class="bar ${pct>=100?"full":pct>=80?"hi":""}"><i><b style="width:${pct}%"></b></i><span></span></span><span></span><span></span><span></span>`;
+  meta.children[0].children[1].textContent=`${c.usados} de ${c.limite||LIM} este mes`;
+  meta.children[1].textContent=c.vence?`Vence: ${fechaDia(c.vence)}`:"Sin vencimiento";
+  meta.children[2].textContent=c.navegador?`Atado a un navegador desde el ${fecha(c.navegadorDesde)}`:"Todavía no se usó en ningún navegador";
+  meta.children[3].textContent=c.ultimoUso?`Último uso: ${fecha(c.ultimoUso)}`:`Creado: ${fecha(c.creado)}`;
+  el.append(top,btns,meta);
+  return el;
+}
+async function act(btn, action, code, okMsg, extra={}){
+  btn.disabled=true;
+  try{
+    const d=await call(action,{code,...extra});
+    if (action==="delete") CODES=CODES.filter(x=>x.code!==code);
+    else CODES=CODES.map(x=>x.code===code?d.codigo:x);
+    render(); toast(okMsg);
+  }catch(e){ btn.disabled=false; toast(e.message); if(e.code==="bad_password") location.reload(); }
+}
+$("#filter").oninput=render;
+
+let LAST=null;
+$("#newForm").onsubmit=async e=>{
+  e.preventDefault();
+  const btn=e.submitter; if(btn) btn.disabled=true;
+  try{
+    const d=await call("create",{nombre:$("#nNombre").value.trim(), vence:$("#nVence").value||null});
+    LAST=d.codigo; CODES=[d.codigo,...CODES]; render();
+    $("#newFor").textContent=`Código para ${LAST.nombre}`; $("#newCode").textContent=LAST.code; $("#newOut").hidden=false;
+    $("#nNombre").value=""; $("#nVence").value="";
+  }catch(err){ toast(err.message); }
+  finally{ if(btn) btn.disabled=false; }
+};
+$("#cpCode").onclick=()=>LAST&&copy(LAST.code);
+$("#cpMsg").onclick=()=>{ if(!LAST) return;
+  const site=location.origin+"/";
+  copy(`Hola! Este es tu acceso a Juicios en Limpio:\n\n1. Entrá a ${site}\n2. Cuando te pida el código de acceso, escribí: ${LAST.code}\n\nOjo: el código queda guardado en el primer navegador donde lo uses, y solo anda en ese. Si cambiás de compu o borrás los datos del navegador, avisame y te lo libero.${LAST.vence?`\nVence el ${fechaDia(LAST.vence)}.`:""}`);
+};
+
+const saved=ss.get("adm"); if (saved) login(saved);
+})();
+</script>
+</body>
+</html>

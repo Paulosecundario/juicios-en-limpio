@@ -952,18 +952,29 @@ function tolerantJson(t){
   throw {code:"invalid_json", text:t};
 }
 async function blobToB64(b){ const u=new Uint8Array(await b.arrayBuffer()); let s=""; for (let i=0;i<u.length;i+=0x8000) s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); return btoa(s); }
+// A random id for this browser: each access code works in only one browser
+function deviceId(){
+  let id=lsGet("juicios.device");
+  if (!id || !/^[a-z0-9-]{16,64}$/i.test(id)){ id=(crypto.randomUUID?crypto.randomUUID():Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,"0")).join("")); lsSet("juicios.device",id); }
+  return id;
+}
 async function aiJson(prompt, opts={}){
   if (S.sample) return S.sample.json(prompt, opts);
   if (S.remote!=="ok") throw {code:"not_granted"};
   const code=lsGet("juicios.code")||"";
   if (!code) throw {code:"need_code"};
-  const body={code, prompt};
+  const body={code, prompt, device:deviceId()};
   if (opts.images){ const img=opts.images; if (img.size>4.5e6) throw {code:"image_rejected"}; body.image={media_type:img.type||"image/jpeg", data:await blobToB64(img)}; }
   let r;
   try { r=await fetch(AI_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),signal:opts.signal}); }
   catch(e){ throw {code: e && e.name==="AbortError" ? "cancelled" : "upstream_error"}; }
   const d=await r.json().catch(()=>({}));
-  if (!r.ok) throw {code: r.status===401?"bad_code": r.status===429?"rate_limited": r.status===503?"not_configured": r.status===413?"prompt_too_large":"upstream_error"};
+  if (!r.ok){
+    const known=["code_disabled","code_expired","device_mismatch","quota"];
+    if (d.error==="quota") S.uso={usados:d.usados, limite:d.limite};
+    throw {code: known.includes(d.error)?d.error: r.status===401?"bad_code": r.status===429?"rate_limited": r.status===503?"not_configured": r.status===413?"prompt_too_large":"upstream_error", vence:d.vence};
+  }
+  if (d.uso) S.uso=d.uso;
   return tolerantJson(d.text);
 }
 async function saveFile(filename, data){
@@ -1598,6 +1609,10 @@ Respondé solo con un array JSON, un objeto por estudiante y con el mismo id:
 const ERR_TXT = {
   need_code:"Para generar juicios, ingresá tu código de acceso.",
   bad_code:"Ese código de acceso no es válido. Revisalo o pedí uno nuevo.",
+  device_mismatch:"Este código ya se está usando en otra compu o en otro navegador. Pedile a quien te dio el acceso que lo libere o que te dé uno nuevo.",
+  code_expired:"Tu código de acceso venció. Pedile a quien te dio el acceso que lo renueve.",
+  code_disabled:"Este código de acceso está desactivado. Pedile a quien te dio el acceso que lo revise.",
+  quota:"Llegaste al tope de juicios de este mes. Se renueva el primer día del mes que viene.",
   not_configured:"La redacción automática todavía no está configurada en este sitio.",
   not_granted:"No se permitió usar Claude desde esta página. Podés seguir escribiendo a mano.",
   sampling_disabled:"Claude no está disponible para tu cuenta en esta página.",
@@ -1636,10 +1651,12 @@ async function generar(list, regen){
       }
       scheduleSave(); renderStats();
     }
-    if (list.length>1) toast(`${hechos} juicios listos. Revisalos antes de pasarlos.`);
+    const qn = S.uso && S.uso.limite ? Math.max(0,S.uso.limite-S.uso.usados) : null;
+    const queda = qn==null ? "" : qn===1 ? " Te queda 1 este mes." : ` Te quedan ${qn} este mes.`;
+    if (list.length>1) toast(`${hechos} juicios listos. Revisalos antes de pasarlos.${queda}`);
   } catch(e){
     list.forEach(a=>refreshRow(a,false));
-    if (e && e.code!=="cancelled"){ note.hidden=false; note.textContent=ERR_TXT[e.code]||"No se pudo generar. Probá de nuevo."; if(["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].includes(e.code)) S.sample=null; if(e.code==="bad_code"||e.code==="need_code") showCodeBox(); }
+    if (e && e.code!=="cancelled"){ note.hidden=false; note.textContent=ERR_TXT[e.code]||"No se pudo generar. Probá de nuevo."; if(["not_granted","sampling_disabled","not_declared","capability_disabled","capability_removed"].includes(e.code)) S.sample=null; if(["bad_code","need_code","device_mismatch","code_expired","code_disabled"].includes(e.code)) showCodeBox(); }
   } finally { setBusy(false); S.ctl=null; }
 }
 $("#codeSave").onclick=()=>{ const v=$("#codeIn").value.trim(); if(!v) return; lsSet("juicios.code",v); $("#codeBox").hidden=true; $("#aiNote").hidden=true; toast("Código guardado. Ya podés generar juicios."); };
